@@ -1,0 +1,76 @@
+name: Build YP79 Terpadu
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.2'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "KEYSTORE_BASE64 tidak di-set. Build tanpa tanda tangan."
+          else
+            echo "$KEYSTORE_BASE64" | base64 -d > yp79-release.keystore
+            echo "keystore decoded"
+          fi
+
+      - name: Build APK
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/yp79-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_KEYPASSWORD: ${{ secrets.KEYSTORE_KEYPASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+        run: flutter build apk --release --obfuscate --split-debug-info=debug
+
+      - name: Upload APK artifact
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: yp79-terpadu-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 5
+
+      - name: Release APK
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: YP79 Terpadu ${{ github.run_number }}
+          tag_name: v${{ github.run_number }}
+          generate_release_notes: true
+
+# Catatan keamanan: keystore & password hanya via GitHub Secrets, tidak di repo.
+# Secrets yang dibutuhkan di repo ini:
+#   KEYSTORE_BASE64    - keystore file di-encode base64
+#   KEYSTORE_PASSWORD  - password keystore (store password)
+#   KEYSTORE_KEYPASSWORD - password alias (key password)
+#   KEYSTORE_ALIAS     - nama alias di keystore
