@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "430633774743",
+    "project_id": "yp79-1793d",
+    "storage_bucket": "yp79-1793d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:430633774743:android:3f9bc1b5fb38da6aec03d2",
+        "android_client_info": {
+          "package_name": "com.yp79terpadu.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3Fclgbh8YP__nNDHCy0GJBt3dNVgPQ0o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

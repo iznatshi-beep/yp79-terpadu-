@@ -1,0 +1,316 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/models/session_profile.dart';
+import '../../../core/theme.dart';
+import '../../../services/repositories.dart';
+import '../../../widgets/app_states.dart';
+import '../../../widgets/common.dart';
+import '../widgets/dashboard_widgets.dart';
+
+/// Dashboard Administrator: statistik nyata dari DB + akses modul.
+class AdminDashboard extends StatelessWidget {
+  const AdminDashboard({super.key, required this.profile});
+
+  final SessionProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        FutureBuilder<List<({String label, String value, String subtitle, IconData icon, Color color})>>(
+          future: _stats(),
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: SkeletonRow(),
+              );
+            }
+            final stats = snap.data ?? const [];
+            return Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionHeader(title: 'Ringkasan Hari Ini'),
+                  const SizedBox(height: 4),
+                  GridView.count(
+                    shrinkWrap: true,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.6,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      for (final s in stats)
+                        DashboardStatCard(
+                          label: s.label,
+                          value: s.value,
+                          subtitle: s.subtitle,
+                          icon: s.icon,
+                          color: s.color,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        FutureBuilder<QueryResult<RowData>>(
+          future: Repos.announcements(limit: 3),
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const SizedBox(height: 10);
+            }
+            final ann = snap.data?.data ?? const [];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionHeader(title: 'Pengumuman Terbaru'),
+                  if (ann.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: EmptyState(
+                        title: 'Belum ada pengumuman',
+                        message: 'Pengumuman sekolah akan tampil di sini.',
+                        icon: Icons.campaign_outlined,
+                      ),
+                    )
+                  else
+                    for (final a in ann)
+                      _AnnouncementTile(
+                        judul: a['judul'] as String? ?? '',
+                        isi: a['isi'] as String?,
+                        prioritas: a['prioritas'] as String? ?? 'biasa',
+                        waktu: a['dipublikasikan_pada'] as String?,
+                      ),
+                ],
+              ),
+            );
+          },
+        ),
+        FutureBuilder<QueryResult<RowData>>(
+          future: Repos.notifications(limit: 5),
+          builder: (context, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const SizedBox(height: 10);
+            }
+            final notifs = snap.data?.data ?? const [];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SectionHeader(title: 'Notifikasi Terbaru'),
+                  if (notifs.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: EmptyState(
+                        title: 'Tidak ada notifikasi',
+                        message: 'Notifikasi masuk akan tampil di sini.',
+                        icon: Icons.notifications_none,
+                      ),
+                    )
+                  else
+                    for (final n in notifs)
+                      _NotificationTile(
+                        judul: n['judul'] as String? ?? '',
+                        pesan: n['pesan'] as String?,
+                        waktu: n['created_at'] as String?,
+                        sudahDibaca: n['dibaca_pada'] != null,
+                        onDibaca: () =>
+                            Repos.markNotificationRead(n['id'] as String? ?? ''),
+                      ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Future<List<({String label, String value, String subtitle, IconData icon, Color color})>> _stats() async {
+    final now = DateTime.now();
+    final today = now.toIso8601String().substring(0, 10);
+    final results = await Future.wait([
+      Repos.attendanceToday(),
+      Repos.leaves(status: 'diajukan'),
+    ]);
+    final presensiHariIni = results[0].data.length;
+    final izinMenunggu = results[1].data.length;
+    return [
+      (
+        label: 'Presensi Hari Ini',
+        value: '$presensiHariIni',
+        subtitle: 'tercatat sampai $today',
+        icon: Icons.fact_check_outlined,
+        color: AppColors.primary,
+      ),
+      (
+        label: 'Izin Menunggu',
+        value: '$izinMenunggu',
+        subtitle: 'perlu keputusan',
+        icon: Icons.hourglass_empty_rounded,
+        color: AppColors.warning,
+      ),
+    ];
+  }
+}
+
+class _AnnouncementTile extends StatelessWidget {
+  const _AnnouncementTile({
+    required this.judul,
+    this.isi,
+    required this.prioritas,
+    this.waktu,
+  });
+
+  final String judul;
+  final String? isi;
+  final String prioritas;
+  final String? waktu;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarurat = prioritas == 'darurat';
+    final isPenting = prioritas == 'penting';
+    final accent =
+        isDarurat ? AppColors.danger : (isPenting ? AppColors.warning : AppColors.primary);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              StatusBadge(
+                label: prioritas.toUpperCase(),
+                state: isDarurat
+                    ? BadgeState.danger
+                    : (isPenting ? BadgeState.warning : BadgeState.info),
+              ),
+              const Spacer(),
+              if (waktu != null)
+                Text(
+                  waktu!.split('T')[0],
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textSecondary),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            judul,
+            style: const TextStyle(
+                fontSize: 14.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (isi != null && isi!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              isi!,
+              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({
+    required this.judul,
+    this.pesan,
+    this.waktu,
+    required this.sudahDibaca,
+    required this.onDibaca,
+  });
+
+  final String judul;
+  final String? pesan;
+  final String? waktu;
+  final bool sudahDibaca;
+  final VoidCallback onDibaca;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: onDibaca,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              sudahDibaca
+                  ? Icons.notifications_none_outlined
+                  : Icons.notifications_active_outlined,
+              size: 18,
+              color: sudahDibaca ? AppColors.textSecondary : AppColors.primary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    judul,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: sudahDibaca ? FontWeight.w600 : FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (pesan != null && pesan!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      pesan!,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (waktu != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  waktu!.split('T')[0],
+                  style: const TextStyle(
+                      fontSize: 10.5, color: AppColors.textSecondary),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

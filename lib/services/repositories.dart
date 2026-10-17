@@ -1,0 +1,804 @@
+import 'package:supabase_flutter/supabase.dart';
+import 'package:supabase/supabase.dart' show SupabaseClient;
+
+/// Tipe record generik untuk data Supabase.
+typedef RowData = Map<String, dynamic>;
+
+/// Hasil query standar.
+class QueryResult<T> {
+  const QueryResult({required this.data, this.total, this.error});
+  final List<T> data;
+  final int? total;
+  final String? error;
+
+  bool get ok => error == null;
+  bool get isEmpty => data.isEmpty;
+}
+
+/// Repositori terpusat seluruh modul.
+/// Semua fetch mengembalikan [QueryResult] agar UI bisa render loading/empty/error.
+class Repos {
+  static SupabaseClient get db => Supabase.instance.client;
+
+  static String get uid => db.auth.currentUser?.id ?? '';
+
+  // ---------- SEKOLAH ----------
+
+  static Future<QueryResult<RowData>> schoolSettings() async {
+    try {
+      final rows = await db.from('school_settings').select();
+      return QueryResult<RowData>(data: [
+        for (final r in rows)
+          Map<String, dynamic>.from(
+            {'key': r['key'], 'value': r['value']}
+          )
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- PELAJARAN / JADWAL ----------
+
+  static Future<QueryResult<RowData>> classes() async {
+    try {
+      final rows = await db.from('classes').select('*, subjects (kode, nama)');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> subjects() async {
+    try {
+      final rows = await db.from('subjects').select();
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> schedules({
+    String? classId,
+    String? teacherId,
+    String? tahunAjaran,
+  }) async {
+    try {
+      var q = db.from('schedules').select('*, subjects (kode, nama), classes (nama)').order('hari');
+      if (classId != null) q = q.eq('class_id', classId);
+      if (teacherId != null) q = q.eq('teacher_user_id', teacherId);
+      if (tahunAjaran != null) q = q.eq('tahun_ajaran', tahunAjaran);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> teacherAssignments({
+    String? teacherId,
+  }) async {
+    try {
+      var q = db.from('teacher_assignments').select('*, classes(nama), subjects(kode, nama)').order('class_id');
+      if (teacherId != null) q = q.eq('teacher_user_id', teacherId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> classStudents(String classId, {String? tahunAjaran}) async {
+    try {
+      var q = db
+          .from('class_enrollments')
+          .select('student_user_id, student_profiles(nis, nama_lengkap, jenis_kelamin, tanggal_lahir)')
+          .eq('class_id', classId)
+          .order('student_user_id');
+      if (tahunAjaran != null) q = q.eq('tahun_ajaran', tahunAjaran);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- PRESSENSI ----------
+
+  static Future<QueryResult<RowData>> attendance({
+    String? studentId,
+    String? classId,
+    DateTime? mulai,
+    DateTime? sampai,
+  }) async {
+    try {
+      var q = db.from('attendance_records').select().order('tanggal', ascending: false).limit(200);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      if (mulai != null) q = q.gte('tanggal', mulai.toIso8601String().substring(0, 10));
+      if (sampai != null) q = q.lte('tanggal', sampai.toIso8601String().substring(0, 10));
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> attendanceToday({String? classId}) async {
+    final today = DateTime.now();
+    final s = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    try {
+      var q = db.from('attendance_records').select().eq('tanggal', s);
+      if (classId != null) {
+        q = q.inFilter('student_user_id',
+            await _studentIdsOfClass(classId));
+      }
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<List<String>> _studentIdsOfClass(String classId) async {
+    final rows =
+        await db.from('class_enrollments').select('student_user_id').eq('class_id', classId);
+    return [for (final r in rows) r['student_user_id'] as String]
+        .where((v) => v.isNotEmpty)
+        .toList();
+  }
+
+  static Future<bool> upsertAttendance({
+    required String studentId,
+    required String tanggal,
+    required String status,
+    String metode = 'manual',
+    String? catatan,
+  }) async {
+    try {
+      await db.from('attendance_records').upsert(
+            {
+              'student_user_id': studentId,
+              'tanggal': tanggal,
+              'status': status,
+              'metode': metode,
+              'catatan': catatan,
+              'jam_checkin': DateTime.now().toIso8601String(),
+              'dibuat_oleh': uid,
+            },
+            onConflict: 'student_user_id,tanggal',
+          );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ---------- IZIN ----------
+
+  static Future<QueryResult<RowData>> leaves({
+    String? studentId,
+    String? status,
+  }) async {
+    try {
+      var q = db.from('leave_requests').select('*, student_profiles(nis, nama_lengkap)').order('created_at', ascending: false).limit(100);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      if (status != null) q = q.eq('status', status);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<bool> submitLeave({
+    required String studentId,
+    required String mulai,
+    String? selesai,
+    required String jenis,
+    required String alasan,
+  }) async {
+    try {
+      await db.from('leave_requests').insert({
+        'student_user_id': studentId,
+        'diajukan_oleh': uid,
+        'mulai': mulai,
+        'selesai': selesai,
+        'jenis': jenis,
+        'alasan': alasan,
+        'status': 'diajukan',
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> decideLeave({
+    required String id,
+    required String status,
+    String? catatan,
+  }) async {
+    try {
+      await db
+          .from('leave_requests')
+          .update({
+            'status': status,
+            'catatan_keputusan': catatan,
+            'keputusan_oleh': uid,
+          })
+          .eq('id', id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ---------- NILAI ----------
+
+  static Future<QueryResult<RowData>> grades({
+    String? studentId,
+    String? subjectId,
+    String? semester,
+  }) async {
+    try {
+      var q = db.from('grading_records').select('*, subjects(kode, nama)').order('tanggal_input', ascending: false).limit(500);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      if (subjectId != null) q = q.eq('subject_id', subjectId);
+      if (semester != null) q = q.eq('semester', semester);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<bool> upsertGrade({
+    required String studentId,
+    required String subjectId,
+    required String kategori,
+    required double nilai,
+    String semester = 'gasal',
+    String tahunAjaran = '2026/2027',
+    String? catatan,
+  }) async {
+    try {
+      final existing = await db
+          .from('grading_records')
+          .select('id')
+          .eq('student_user_id', studentId)
+          .eq('subject_id', subjectId)
+          .eq('kategori', kategori)
+          .eq('semester', semester)
+          .eq('tahun_ajaran', tahunAjaran)
+          .limit(1);
+      if (existing.isNotEmpty) {
+        await db
+            .from('grading_records')
+            .update({
+              'nilai': nilai,
+              'catatan': catatan,
+              'guru_id': uid,
+            })
+            .eq('id', existing.first['id']);
+      } else {
+        await db.from('grading_records').insert({
+              'student_user_id': studentId,
+              'subject_id': subjectId,
+              'guru_id': uid,
+              'kategori': kategori,
+              'nilai': nilai,
+              'semester': semester,
+              'tahun_ajaran': tahunAjaran,
+              'catatan': catatan,
+            });
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ---------- LMS ----------
+
+  static Future<QueryResult<RowData>> materials({
+    String? classId,
+    String? subjectId,
+  }) async {
+    try {
+      var q = db
+          .from('learning_materials')
+          .select('*, subjects(kode, nama), classes(nama)')
+          .order('created_at', ascending: false)
+          .limit(200);
+      if (classId != null) q = q.eq('class_id', classId);
+      if (subjectId != null) q = q.eq('subject_id', subjectId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> assignments({
+    String? classId,
+    String? subjectId,
+    String? status,
+  }) async {
+    try {
+      var q = db
+          .from('assignments')
+          .select('*, subjects(kode, nama), classes(nama)')
+          .order('tenggat')
+          .limit(200);
+      if (classId != null) q = q.eq('class_id', classId);
+      if (subjectId != null) q = q.eq('subject_id', subjectId);
+      if (status != null) q = q.eq('status', status);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> submissions({
+    String? assignmentId,
+    String? studentId,
+  }) async {
+    try {
+      var q = db
+          .from('assignment_submissions')
+          .select('*, assignments(judul)')
+          .order('created_at', ascending: false)
+          .limit(200);
+      if (assignmentId != null) q = q.eq('assignment_id', assignmentId);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<bool> submitAssignment({
+    required String assignmentId,
+    required String studentId,
+    String? jawaban,
+    String? fileUrl,
+    String? fileName,
+  }) async {
+    try {
+      await db.from('assignment_submissions').upsert(
+            {
+              'assignment_id': assignmentId,
+              'student_user_id': studentId,
+              'jawaban_text': jawaban,
+              'file_url': fileUrl,
+              'file_nama': fileName,
+              'status': 'dikumpulkan',
+            },
+            onConflict: 'assignment_id,student_user_id',
+          );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> gradeSubmission({
+    required String id,
+    required double nilai,
+    String? umpanBalik,
+  }) async {
+    try {
+      await db.from('assignment_submissions')
+          .update({
+            'nilai': nilai,
+            'umpan_balik': umpanBalik,
+            'status': 'dinilai',
+          })
+          .eq('id', id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ---------- CBT ----------
+
+  static Future<QueryResult<RowData>> exams({
+    String? classId,
+    String? subjectId,
+    String? status,
+  }) async {
+    try {
+      var q = db
+          .from('exams')
+          .select('*, subjects(kode, nama), classes(nama)')
+          .order('mulai')
+          .limit(200);
+      if (classId != null) q = q.eq('class_id', classId);
+      if (subjectId != null) q = q.eq('subject_id', subjectId);
+      if (status != null) q = q.eq('status', status);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> examQuestions(String examId) async {
+    try {
+      final rows =
+          await db.from('exam_questions').select().eq('exam_id', examId).order('urutan');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> examAttempts({String? examId}) async {
+    try {
+      var q = db.from('exam_attempts').select('*, exams(judul)').order('mulai', ascending: false).limit(200);
+      if (examId != null) q = q.eq('exam_id', examId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> examAnswers(String attemptId) async {
+    try {
+      final rows = await db.from('exam_answers').select('*, exam_questions(pertanyaan, tipe)').eq('attempt_id', attemptId).order('id');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<String?> startExam({
+    required String examId,
+    required String studentId,
+  }) async {
+    try {
+      final exam = await db.from('exams').select().eq('id', examId).limit(1);
+      if (exam.isEmpty) return null;
+      final e = exam.first as Map;
+      final now = DateTime.now();
+      final mulai = DateTime.tryParse(e['mulai'] as String) ?? now;
+      final selesai = DateTime.tryParse(e['selesai'] as String) ?? now;
+      if (now.isBefore(mulai) || now.isAfter(selesai)) {
+        return 'Periode ujian tidak aktif.';
+      }
+      final existing = await db
+          .from('exam_attempts')
+          .select('id, percobaan')
+          .eq('exam_id', examId)
+          .eq('student_user_id', studentId)
+          .order('percobaan', ascending: false)
+          .limit(1);
+      final nextPercobaan =
+          (existing.isEmpty ? 0 : (existing.first['percobaan'] as int ?? 0)) + 1;
+      final maxPercobaan = e['jumlah_percobaan'] as int ?? 1;
+      if (nextPercobaan > maxPercobaan) {
+        return 'Jumlah percobaan sudah tercapai.';
+      }
+      final ins = await db
+          .from('exam_attempts')
+          .insert({
+            'exam_id': examId,
+            'student_user_id': studentId,
+            'percobaan': nextPercobaan,
+            'mulai': now.toIso8601String(),
+            'status': 'berlangsung',
+          })
+          .select()
+          .single();
+      return ins['id'] as String?;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  static Future<bool> saveExamAnswer({
+    required String attemptId,
+    required String questionId,
+    String? jawaban,
+  }) async {
+    try {
+      await db.from('exam_answers').upsert(
+            {
+              'attempt_id': attemptId,
+              'question_id': questionId,
+              'jawaban': jawaban,
+            },
+            onConflict: 'attempt_id,question_id',
+          );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<String?> submitExam({
+    required String attemptId,
+  }) async {
+    try {
+      final upd = await db
+          .from('exam_attempts')
+          .update({
+            'selesai': DateTime.now().toIso8601String(),
+            'status': 'dikumpulkan',
+          })
+          .eq('id', attemptId)
+          .select();
+      if (upd.isEmpty) return 'Attempt tidak ditemukan.';
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  // ---------- PERPUSTAKAAN ----------
+
+  static Future<QueryResult<RowData>> libraryBooks({
+    String? q,
+    String? kategori,
+  }) async {
+    try {
+      var query = db.from('library_books').select().order('judul').limit(200);
+      if (q != null && q.isNotEmpty) query = query.ilike('judul', '%$q%');
+      if (kategori != null) query = query.eq('kategori', kategori);
+      final rows = await query;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> libraryLoans({String? studentId}) async {
+    try {
+      var q = db.from('library_loans').select('*, library_books(judul, penulis)').order('tanggal_pinjam', ascending: false).limit(100);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> digitalResources({String? q}) async {
+    try {
+      var query = db.from('digital_resources').select('*, profiles(nama as pembuat)').eq('dipublikasikan', true).order('created_at', ascending: false).limit(200);
+      if (q != null && q.isNotEmpty) query = query.ilike('judul', '%$q%');
+      final rows = await query;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- KEUANGAN ----------
+
+  static Future<QueryResult<RowData>> financeCategories() async {
+    try {
+      final rows = await db.from('finance_categories').select().order('kode');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> financeItems({
+    String? studentId,
+  }) async {
+    try {
+      var q = db.from('finance_items').select('*, finance_categories(kode, nama)').order('semester');
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- MABIT ----------
+
+  static Future<QueryResult<RowData>> mabitEvents({String? status}) async {
+    try {
+      var q = db.from('mabit_events').select().order('tanggal_mulai', ascending: false).limit(50);
+      if (status != null) q = q.eq('status', status);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> mabitParticipants(String eventId) async {
+    try {
+      final rows = await db
+          .from('mabit_participants')
+          .select('*, student_profiles(nis, nama_lengkap)')
+          .eq('event_id', eventId)
+          .order('id');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> mutabaah({String? studentId}) async {
+    try {
+      var q = db.from('mutabaah_entries').select().order('tanggal', ascending: false).limit(100);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> mabitRundown(String eventId) async {
+    try {
+      final rows =
+          await db.from('mabit_rundown_items').select().eq('event_id', eventId).order('urutan');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- NOTIFIKASI / PENGUMUMAN ----------
+
+  static Future<QueryResult<RowData>> notifications({int limit = 30}) async {
+    try {
+      final rows = await db.from('notifications').select().eq('penerima_user_id', uid).order('created_at', ascending: false).limit(limit);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<int> unreadCount() async {
+    try {
+      final rows = await db
+          .from('notifications')
+          .select('id', count: 'exact')
+          .eq('penerima_user_id', uid)
+          .is_('dibaca_pada', null);
+      if (rows.isEmpty) return 0;
+      return rows.first['count'] as int? ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<bool> markNotificationRead(String id) async {
+    try {
+      await db
+          .from('notifications')
+          .update({'dibaca_pada': DateTime.now().toIso8601String()})
+          .eq('id', id);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<QueryResult<RowData>> announcements({int limit = 20}) async {
+    try {
+      final rows = await db.from('announcements').select('*, profiles(nama as pembuat)').order('dipublikasikan_pada', ascending: false).limit(limit);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- CHAT ----------
+
+  static Future<QueryResult<RowData>> conversations() async {
+    try {
+      final rows = await db
+          .from('chat_conversations')
+          .select('*, profiles(nama as nama_pembuat)')
+          .or('dibuat_oleh.eq.$uid,guru_user_id.eq.$uid')
+          .order('created_at', ascending: false)
+          .limit(50);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> messages(String conversationId) async {
+    try {
+      final rows = await db
+          .from('chat_messages')
+          .select('*, profiles(nama as nama_pengirim)')
+          .eq('conversation_id', conversationId)
+          .order('created_at')
+          .limit(200);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<bool> sendMessage({
+    required String conversationId,
+    required String isi,
+  }) async {
+    try {
+      await db.from('chat_messages').insert({
+        'conversation_id': conversationId,
+        'pengirim_user_id': uid,
+        'isi': isi,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ---------- PERPUSTAKAAN - PINJAM ----------
+  // (loan hanya dibuat oleh admin/petugas melalui backend)
+}
