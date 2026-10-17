@@ -1,17 +1,39 @@
-# yp79_terpadu
+# YP79 Terpadu
 
-A new Flutter project.
+Aplikasi Android Sekolah Terpadu berbasis Flutter + Supabase (Postgres + RLS + Auth).
 
-## Getting Started
+## Struktur
 
-This project is a starting point for a Flutter application.
+- `lib/` — kode Flutter (UI 4 role, modul presensi, nilai, LMS, CBT, e-book, keuangan, MABIT, chat)
+- `supabase/` — skema SQL + RLS + functions + seed
+- `android/` — konfigurasi Android, termasuk `google-services.json` (Google Sign-In via Firebase)
+- `.github/workflows/build.yml` — CI build APK
 
-A few resources to get you started if this is your first Flutter project:
+## Menjalankan Migrasi Database
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Jalankan berturut-turut di SQL Editor Supabase:
+1. `supabase/migrations/0001_schema.sql`
+2. `supabase/migrations/0002_rls_functions.sql`
+3. `supabase/migrations/0003_seed.sql`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Lalu isi `.env` di root project (lihat `README-SETUP.md`).
+
+## Google Sign-In
+
+- Firebase project: `yp79-1793d`
+- Android package: `com.yp79terpadu.app`
+- SHA-1 debug (mesin developer): `70:29:7A:88:5C:65:1E:29:50:14:C9:B2:B5:4A:05:78:35:53:BF:58`
+- SHA-1 release: belum ada — tambahkan setelah keystore release tersedia.
+
+## Build APK
+
+Lokal:
+```
+flutter build apk --debug
+```
+
+Via GitHub Actions: push ke `main`, CI otomatis build & upload artifact. Untuk tanda tangan release, set secrets di repo:
+- `KEYSTORE_BASE64`
+- `KEYSTORE_PASSWORD`
+- `KEYSTORE_KEYPASSWORD`
+- `KEYSTORE_ALIAS`
