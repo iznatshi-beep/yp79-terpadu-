@@ -793,20 +793,6 @@ class Repos {
     }
   }
 
-  static Future<int> unreadCount() async {
-    try {
-      final rows = await db
-          .from('notifications')
-          .select('id', count: CountOption.exact)
-          .eq('penerima_user_id', uid)
-          .is_('dibaca_pada', null);
-      if (rows.isEmpty) return 0;
-      return rows.first['count'] as int? ?? 0;
-    } catch (_) {
-      return 0;
-    }
-  }
-
   static Future<bool> markNotificationRead(String id) async {
     try {
       await db
