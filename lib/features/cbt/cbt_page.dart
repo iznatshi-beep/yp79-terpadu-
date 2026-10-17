@@ -41,7 +41,7 @@ class CbtPage extends StatelessWidget {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child: AppStates.loading(rows: 3),
+                child: SkeletonRow(),
               );
             }
             final exams = snap.data?.data ?? const [];
@@ -180,12 +180,12 @@ class _ExamDetailPage extends StatelessWidget {
       body: FutureBuilder<QueryResult<Map<String, dynamic>>>(
         future: Repos.examQuestions(exam['id'] as String),
         builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: AppStates.loading(rows: 4),
-            );
-          }
+            if (snap.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: SkeletonRow(),
+              );
+            }
           final qs = snap.data?.data ?? const [];
           if (qs.isEmpty) {
             return const EmptyState(
@@ -253,13 +253,8 @@ class _ExamDetailPage extends StatelessWidget {
                       ),
                       if (q['tipe'] == 'pilihan') ...[
                         const SizedBox(height: 8),
-                        for (final (label, val) in [
-                          ('A', 'A'),
-                          ('B', 'B'),
-                          ('C', 'C'),
-                          ('D', 'D')
-                        ]) ...[
-                          if (q['opsi_$val'.toUpperCase()] != null)
+                        for (final val in ['A', 'B', 'C', 'D']) ...[
+                          if (q['opsi_$val'] != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 4),
                               child: Row(
@@ -270,9 +265,7 @@ class _ExamDetailPage extends StatelessWidget {
                                           fontSize: 13)),
                                   Expanded(
                                     child: Text(
-                                        q['opsi_$val'.toUpperCase()]
-                                                .toString() ??
-                                            ''),
+                                        q['opsi_$val'].toString()),
                                   ),
                                 ],
                               ),

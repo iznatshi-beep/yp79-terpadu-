@@ -6,8 +6,8 @@ import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/app_states.dart';
-import '../../beranda/beranda_page.dart';
-import '../../login/login_page.dart';
+import '../beranda/beranda_page.dart';
+import '../login/login_page.dart';
 
 /// Gate utama: tampilkan login atau dashboard beranda sesuai status auth.
 class AuthGate extends StatelessWidget {
@@ -42,7 +42,9 @@ class _NoBackendGate extends StatelessWidget {
       body: Column(
         children: [
           const AppStatesBackendUnavailableBanner(),
-          const Expanded(child: LoginPage()),
+          Expanded(
+            child: LoginPage(),
+          ),
         ],
       ),
     );

@@ -4,8 +4,7 @@ import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
-import '../../../widgets/common.dart';
-import '../widgets/dashboard_widgets.dart';
+import '../../../widgets/dashboard_widgets.dart';
 
 /// Dashboard Orang Tua: memilih anak → presensi + nilai + pembiayaan anak.
 class OrangTuaDashboard extends StatelessWidget {
@@ -373,7 +372,7 @@ class Rp {
     final parts = s.split('.');
     final intPart = parts[0];
     final dec = parts.length > 1 ? '.${parts[1]}' : '';
-    final buffer = intPart.split('').toList().reversed;
+    final buffer = intPart.split('').toList().reversed.toList();
     final sb = StringBuffer();
     for (var i = 0; i < buffer.length; i++) {
       if (i > 0 && i % 3 == 0) sb.write('.');

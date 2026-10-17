@@ -4,8 +4,7 @@ import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
-import '../../../widgets/common.dart';
-import '../widgets/dashboard_widgets.dart';
+import '../../../widgets/dashboard_widgets.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
 class AdminDashboard extends StatelessWidget {

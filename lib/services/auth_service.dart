@@ -1,5 +1,5 @@
-import 'package:supabase_flutter/supabase.dart';
-import 'package:supabase/supabase.dart' show AuthChangeEvent, AuthSession;
+import 'package:supabase/supabase.dart';
+import 'package:supabase_flutter/supabase.dart' show Supabase;
 
 import '../core/models/role.dart';
 import '../core/models/session_profile.dart';

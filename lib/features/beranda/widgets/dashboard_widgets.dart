@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
-import '../../../widgets/common.dart';
 
 /// Statistik card kecil untuk dashboard.
 class DashboardStatCard extends StatelessWidget {
@@ -68,15 +67,15 @@ class DashboardStatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          if (subtitle != null) ...[
+          if (subtitle != null)
             const SizedBox(height: 2),
+          if (subtitle != null)
             Text(
               subtitle!,
               style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-          ],
         ],
       ),
     );
@@ -104,7 +103,8 @@ class SectionHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          if (trailing != null) trailing!,
+          if (trailing != null)
+            trailing!,
         ],
       ),
     );
@@ -127,12 +127,14 @@ class BackendBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_outlined, size: 20, color: AppColors.warning),
+          const Icon(Icons.cloud_off_outlined,
+              size: 20, color: AppColors.warning),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Data belum tersedia. Sambungkan backend Supabase untuk memuat data nyata.',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary),
             ),
           ),
         ],

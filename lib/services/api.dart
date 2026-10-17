@@ -1,5 +1,5 @@
-import 'package:supabase_flutter/supabase.dart';
-import 'package:supabase/supabase.dart' show SupabaseClient;
+import 'package:supabase/supabase.dart';
+import 'package:supabase_flutter/supabase.dart' show Supabase;
 
 /// Klien terpusat untuk seluruh operasi database (Supabase).
 class Api {
