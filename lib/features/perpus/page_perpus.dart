@@ -92,7 +92,7 @@ class _KatalogBuku extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final books = snap.data?.data ?? const [];
@@ -163,7 +163,7 @@ class _EBookList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final items = snap.data?.data ?? const [];

@@ -90,7 +90,7 @@ class _AnnouncementList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final anns = snap.data?.data ?? const [];
@@ -150,7 +150,7 @@ class _ChatList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final convs = snap.data?.data ?? const [];

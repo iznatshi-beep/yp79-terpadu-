@@ -31,7 +31,7 @@ class PageMabit extends StatelessWidget {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child: AppStates.loading(rows: 3),
+                child: SkeletonRow(),
               );
             }
             final events = snap.data?.data ?? const [];

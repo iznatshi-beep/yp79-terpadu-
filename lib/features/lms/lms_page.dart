@@ -103,7 +103,7 @@ class _MateriList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final mats = snap.data?.data ?? const [];
@@ -184,7 +184,7 @@ class _TugasList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final asgs = snap.data?.data ?? const [];
@@ -244,7 +244,7 @@ class _PengumpulanList extends StatelessWidget {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: AppStates.loading(rows: 4),
+            child: SkeletonRow(),
           );
         }
         final subs = snap.data?.data ?? const [];

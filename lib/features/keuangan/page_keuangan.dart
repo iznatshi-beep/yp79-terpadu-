@@ -39,7 +39,7 @@ class PageKeuangan extends StatelessWidget {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child: AppStates.loading(rows: 3),
+                child: SkeletonRow(),
               );
             }
             final cats = snap.data?.data ?? const [];
