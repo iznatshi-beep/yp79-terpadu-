@@ -15,6 +15,20 @@ class QueryResult<T> {
   bool get isEmpty => data.isEmpty;
 }
 
+/// Helper untuk membangun filter Supabase yang konsisten.
+PostgrestFilterBuilder<List<Map<String, dynamic>>> _filter(
+  String table, {
+  String select = '*',
+  String? orderCol,
+  bool ascending = true,
+  int? limit,
+}) {
+  var b = Supabase.instance.client.from(table).select(select);
+  if (orderCol != null) b = b.order(orderCol, ascending: ascending);
+  if (limit != null) b = b.limit(limit);
+  return b;
+}
+
 /// Repositori terpusat seluruh modul.
 /// Semua fetch mengembalikan [QueryResult] agar UI bisa render loading/empty/error.
 class Repos {
@@ -42,7 +56,8 @@ class Repos {
 
   static Future<QueryResult<RowData>> classes() async {
     try {
-      final rows = await db.from('classes').select('*, subjects (kode, nama)');
+      final rows =
+          await db.from('classes').select('*, subjects (kode, nama)');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -68,8 +83,7 @@ class Repos {
     String? tahunAjaran,
   }) async {
     try {
-      final PostgrestFilterBuilder<List<Map<String, dynamic>>> q =
-          db.from('schedules').select().order('hari');
+      final q = _filter('schedules', orderCol: 'hari', ascending: false);
       if (classId != null) q.eq('class_id', classId);
       if (teacherId != null) q.eq('teacher_user_id', teacherId);
       if (tahunAjaran != null) q.eq('tahun_ajaran', tahunAjaran);
@@ -86,8 +100,7 @@ class Repos {
     String? teacherId,
   }) async {
     try {
-      final PostgrestFilterBuilder<List<Map<String, dynamic>>> q =
-          db.from('teacher_assignments').select().order('class_id');
+      final q = _filter('teacher_assignments', orderCol: 'class_id');
       if (teacherId != null) q.eq('teacher_user_id', teacherId);
       final rows = await q;
       return QueryResult<RowData>(data: [
@@ -103,12 +116,14 @@ class Repos {
     String? tahunAjaran,
   }) async {
     try {
-      var q = db
-          .from('class_enrollments')
-          .select('student_user_id, student_profiles(nis, nama_lengkap, jenis_kelamin, tanggal_lahir)')
-          .eq('class_id', classId)
-          .order('student_user_id');
-      if (tahunAjaran != null) q = q.eq('tahun_ajaran', tahunAjaran);
+      final q = _filter(
+        'class_enrollments',
+        select:
+            'student_user_id, student_profiles(nis, nama_lengkap, jenis_kelamin, tanggal_lahir)',
+        orderCol: 'student_user_id',
+      )
+        ..eq('class_id', classId);
+      if (tahunAjaran != null) q.eq('tahun_ajaran', tahunAjaran);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -127,17 +142,18 @@ class Repos {
     DateTime? sampai,
   }) async {
     try {
-      var q = db
-          .from('attendance_records')
-          .select()
-          .order('tanggal', ascending: false)
-          .limit(200);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final q = _filter(
+        'attendance_records',
+        orderCol: 'tanggal',
+        ascending: false,
+        limit: 200,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
       if (mulai != null) {
-        q = q.gte('tanggal', mulai.toIso8601String().substring(0, 10));
+        q.gte('tanggal', mulai.toIso8601String().substring(0, 10));
       }
       if (sampai != null) {
-        q = q.lte('tanggal', sampai.toIso8601String().substring(0, 10));
+        q.lte('tanggal', sampai.toIso8601String().substring(0, 10));
       }
       final rows = await q;
       return QueryResult<RowData>(data: [
@@ -150,13 +166,14 @@ class Repos {
 
   static Future<QueryResult<RowData>> attendanceToday({String? classId}) async {
     final today = DateTime.now();
-    final s = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final s =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     try {
-      var q = db.from('attendance_records').select().eq('tanggal', s);
+      final q = db.from('attendance_records').select().eq('tanggal', s);
       if (classId != null) {
         final studentIds = await _studentIdsOfClass(classId);
         if (studentIds.isNotEmpty) {
-          q = q.inFilter('student_user_id', studentIds);
+          q.inFilter('student_user_id', studentIds);
         }
       }
       final rows = await q;
@@ -169,8 +186,10 @@ class Repos {
   }
 
   static Future<List<String>> _studentIdsOfClass(String classId) async {
-    final rows =
-        await db.from('class_enrollments').select('student_user_id').eq('class_id', classId);
+    final rows = await db
+        .from('class_enrollments')
+        .select('student_user_id')
+        .eq('class_id', classId);
     return [
       for (final r in rows) r['student_user_id'] as String? ?? ''
     ].where((v) => v.isNotEmpty).toList();
@@ -209,13 +228,14 @@ class Repos {
     String? status,
   }) async {
     try {
-      var q = db
-          .from('leave_requests')
-          .select()
-          .order('created_at', ascending: false)
-          .limit(100);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
-      if (status != null) q = q.eq('status', status);
+      final q = _filter(
+        'leave_requests',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 100,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
+      if (status != null) q.eq('status', status);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -276,14 +296,15 @@ class Repos {
     String? semester,
   }) async {
     try {
-      var q = db
-          .from('grading_records')
-          .select()
-          .order('tanggal_input', ascending: false)
-          .limit(500);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
-      if (subjectId != null) q = q.eq('subject_id', subjectId);
-      if (semester != null) q = q.eq('semester', semester);
+      final q = _filter(
+        'grading_records',
+        orderCol: 'tanggal_input',
+        ascending: false,
+        limit: 500,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
+      if (subjectId != null) q.eq('subject_id', subjectId);
+      if (semester != null) q.eq('semester', semester);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -346,13 +367,14 @@ class Repos {
     String? subjectId,
   }) async {
     try {
-      var q = db
-          .from('learning_materials')
-          .select()
-          .order('created_at', ascending: false)
-          .limit(200);
-      if (classId != null) q = q.eq('class_id', classId);
-      if (subjectId != null) q = q.eq('subject_id', subjectId);
+      final q = _filter(
+        'learning_materials',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 200,
+      );
+      if (classId != null) q.eq('class_id', classId);
+      if (subjectId != null) q.eq('subject_id', subjectId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -368,10 +390,10 @@ class Repos {
     String? status,
   }) async {
     try {
-      var q = db.from('assignments').select().order('tenggat').limit(200);
-      if (classId != null) q = q.eq('class_id', classId);
-      if (subjectId != null) q = q.eq('subject_id', subjectId);
-      if (status != null) q = q.eq('status', status);
+      final q = _filter('assignments', orderCol: 'tenggat', limit: 200);
+      if (classId != null) q.eq('class_id', classId);
+      if (subjectId != null) q.eq('subject_id', subjectId);
+      if (status != null) q.eq('status', status);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -386,13 +408,14 @@ class Repos {
     String? studentId,
   }) async {
     try {
-      var q = db
-          .from('assignment_submissions')
-          .select()
-          .order('created_at', ascending: false)
-          .limit(200);
-      if (assignmentId != null) q = q.eq('assignment_id', assignmentId);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final q = _filter(
+        'assignment_submissions',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 200,
+      );
+      if (assignmentId != null) q.eq('assignment_id', assignmentId);
+      if (studentId != null) q.eq('student_user_id', studentId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -454,10 +477,10 @@ class Repos {
     String? status,
   }) async {
     try {
-      var q = db.from('exams').select().order('mulai').limit(200);
-      if (classId != null) q = q.eq('class_id', classId);
-      if (subjectId != null) q = q.eq('subject_id', subjectId);
-      if (status != null) q = q.eq('status', status);
+      final q = _filter('exams', orderCol: 'mulai', limit: 200);
+      if (classId != null) q.eq('class_id', classId);
+      if (subjectId != null) q.eq('subject_id', subjectId);
+      if (status != null) q.eq('status', status);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -469,8 +492,11 @@ class Repos {
 
   static Future<QueryResult<RowData>> examQuestions(String examId) async {
     try {
-      final rows =
-          await db.from('exam_questions').select().eq('exam_id', examId).order('urutan');
+      final rows = await db
+          .from('exam_questions')
+          .select()
+          .eq('exam_id', examId)
+          .order('urutan');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -481,12 +507,13 @@ class Repos {
 
   static Future<QueryResult<RowData>> examAttempts({String? examId}) async {
     try {
-      var q = db
-          .from('exam_attempts')
-          .select()
-          .order('mulai', ascending: false)
-          .limit(200);
-      if (examId != null) q = q.eq('exam_id', examId);
+      final q = _filter(
+        'exam_attempts',
+        orderCol: 'mulai',
+        ascending: false,
+        limit: 200,
+      );
+      if (examId != null) q.eq('exam_id', examId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -498,8 +525,11 @@ class Repos {
 
   static Future<QueryResult<RowData>> examAnswers(String attemptId) async {
     try {
-      final rows =
-          await db.from('exam_answers').select().eq('attempt_id', attemptId).order('id');
+      final rows = await db
+          .from('exam_answers')
+          .select()
+          .eq('attempt_id', attemptId)
+          .order('id');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -530,7 +560,8 @@ class Repos {
           .order('percobaan', ascending: false)
           .limit(1);
       final nextPercobaan =
-          (existing.isEmpty ? 0 : (existing.first['percobaan'] as int ?? 0)) + 1;
+          (existing.isEmpty ? 0 : (existing.first['percobaan'] as int? ?? 0)) +
+              1;
       final maxPercobaan = e['jumlah_percobaan'] as int? ?? 1;
       if (nextPercobaan > maxPercobaan) {
         return 'Jumlah percobaan sudah tercapai.';
@@ -598,9 +629,9 @@ class Repos {
     String? kategori,
   }) async {
     try {
-      var query = db.from('library_books').select().order('judul').limit(200);
-      if (q != null && q.isNotEmpty) query = query.ilike('judul', '%$q%');
-      if (kategori != null) query = query.eq('kategori', kategori);
+      final query = _filter('library_books', orderCol: 'judul', limit: 200);
+      if (q != null && q.isNotEmpty) query.ilike('judul', '%$q%');
+      if (kategori != null) query.eq('kategori', kategori);
       final rows = await query;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -612,12 +643,13 @@ class Repos {
 
   static Future<QueryResult<RowData>> libraryLoans({String? studentId}) async {
     try {
-      var q = db
-          .from('library_loans')
-          .select()
-          .order('tanggal_pinjam', ascending: false)
-          .limit(100);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final q = _filter(
+        'library_loans',
+        orderCol: 'tanggal_pinjam',
+        ascending: false,
+        limit: 100,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -629,13 +661,14 @@ class Repos {
 
   static Future<QueryResult<RowData>> digitalResources({String? q}) async {
     try {
-      var query = db
-          .from('digital_resources')
-          .select()
-          .eq('dipublikasikan', true)
-          .order('created_at', ascending: false)
-          .limit(200);
-      if (q != null && q.isNotEmpty) query = query.ilike('judul', '%$q%');
+      final query = _filter(
+        'digital_resources',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 200,
+      )
+        ..eq('dipublikasikan', true);
+      if (q != null && q.isNotEmpty) query.ilike('judul', '%$q%');
       final rows = await query;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -649,7 +682,8 @@ class Repos {
 
   static Future<QueryResult<RowData>> financeCategories() async {
     try {
-      final rows = await db.from('finance_categories').select().order('kode');
+      final rows =
+          await db.from('finance_categories').select().order('kode');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -660,8 +694,8 @@ class Repos {
 
   static Future<QueryResult<RowData>> financeItems({String? studentId}) async {
     try {
-      var q = db.from('finance_items').select().order('semester');
-      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final q = _filter('finance_items', orderCol: 'semester');
+      if (studentId != null) q.eq('student_user_id', studentId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -675,12 +709,13 @@ class Repos {
 
   static Future<QueryResult<RowData>> mabitEvents({String? status}) async {
     try {
-      var q = db
-          .from('mabit_events')
-          .select()
-          .order('tanggal_mulai', ascending: false)
-          .limit(50);
-      if (status != null) q = q.eq('status', status);
+      final q = _filter(
+        'mabit_events',
+        orderCol: 'tanggal_mulai',
+        ascending: false,
+        limit: 50,
+      );
+      if (status != null) q.eq('status', status);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -690,10 +725,15 @@ class Repos {
     }
   }
 
-  static Future<QueryResult<RowData>> mabitParticipants(String eventId) async {
+  static Future<QueryResult<RowData>> mabitParticipants(
+    String eventId,
+  ) async {
     try {
-      final rows =
-          await db.from('mabit_participants').select().eq('event_id', eventId).order('id');
+      final rows = await db
+          .from('mabit_participants')
+          .select()
+          .eq('event_id', eventId)
+          .order('id');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -704,12 +744,13 @@ class Repos {
 
   static Future<QueryResult<RowData>> mutabaah({String? studentId}) async {
     try {
-      var q = db
-          .from('mutabaah_entries')
-          .select()
-          .order('tanggal', ascending: false)
-          .limit(100);
-      if (studentId != null) q = q.eq('student_user_id', studentId);
+      final q = _filter(
+        'mutabaah_entries',
+        orderCol: 'tanggal',
+        ascending: false,
+        limit: 100,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -721,8 +762,11 @@ class Repos {
 
   static Future<QueryResult<RowData>> mabitRundown(String eventId) async {
     try {
-      final rows =
-          await db.from('mabit_rundown_items').select().eq('event_id', eventId).order('urutan');
+      final rows = await db
+          .from('mabit_rundown_items')
+          .select()
+          .eq('event_id', eventId)
+          .order('urutan');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -735,8 +779,12 @@ class Repos {
 
   static Future<QueryResult<RowData>> notifications({int limit = 30}) async {
     try {
-      final rows =
-          await db.from('notifications').select().eq('penerima_user_id', uid).order('created_at', ascending: false).limit(limit);
+      final rows = await db
+          .from('notifications')
+          .select()
+          .eq('penerima_user_id', uid)
+          .order('created_at', ascending: false)
+          .limit(limit);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -749,7 +797,7 @@ class Repos {
     try {
       final rows = await db
           .from('notifications')
-          .select('id', count: 'exact')
+          .select('id', count: CountOption.exact)
           .eq('penerima_user_id', uid)
           .is_('dibaca_pada', null);
       if (rows.isEmpty) return 0;
@@ -773,8 +821,11 @@ class Repos {
 
   static Future<QueryResult<RowData>> announcements({int limit = 20}) async {
     try {
-      final rows =
-          await db.from('announcements').select().order('dipublikasikan_pada', ascending: false).limit(limit);
+      final rows = await db
+          .from('announcements')
+          .select()
+          .order('dipublikasikan_pada', ascending: false)
+          .limit(limit);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -787,8 +838,14 @@ class Repos {
 
   static Future<QueryResult<RowData>> conversations() async {
     try {
-      final rows =
-          await db.from('chat_conversations').select().or('dibuat_oleh.eq.$uid,guru_user_id.eq.$uid').order('created_at', ascending: false).limit(50);
+      final rows = await db
+          .from('chat_conversations')
+          .select()
+          .or(
+            'dibuat_oleh.eq.$uid,guru_user_id.eq.$uid',
+          )
+          .order('created_at', ascending: false)
+          .limit(50);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -799,8 +856,12 @@ class Repos {
 
   static Future<QueryResult<RowData>> messages(String conversationId) async {
     try {
-      final rows =
-          await db.from('chat_messages').select().eq('conversation_id', conversationId).order('created_at').limit(200);
+      final rows = await db
+          .from('chat_messages')
+          .select()
+          .eq('conversation_id', conversationId)
+          .order('created_at')
+          .limit(200);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);

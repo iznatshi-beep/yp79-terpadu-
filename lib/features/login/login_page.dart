@@ -4,7 +4,6 @@ import '../../../core/config.dart';
 import '../../../core/theme.dart';
 import '../../../services/api.dart';
 import '../../../widgets/app_states.dart';
-import '../../../widgets/common.dart';
 
 /// Layar login aplikasi YP79 Terpadu.
 /// Autentikasi nyata: Supabase Auth email+password.
@@ -33,17 +32,14 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final res = await Api.client.auth.signInWithPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-      );
-      if (!res.data.session.isPresent) {
-        _toast('Gagal masuk: sesi tidak terkirim. Periksa kredensial.');
-      } else {
-        _toast('Berhasil masuk. Menyiapkan dashboard...', durasi: 2);
-      }
+      await Api.client.auth
+          .signInWithPassword(
+            email: _emailCtrl.text.trim(),
+            password: _passCtrl.text,
+          );
+      _toast('Berhasil masuk. Menyiapkan dashboard...', durasi: 2);
     } on Exception catch (e) {
-      _toast('Gagal masuk: ${e.toString()}');
+      _toast('Gagal masuk: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -118,17 +114,18 @@ class _LoginPageState extends State<LoginPage> {
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        autofillGroup: AutofillGroup.emailAddress,
                         enabled: backendReady && !_loading,
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.alternate_email_outlined),
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty)
+                          if (v == null || v.trim().isEmpty) {
                             return 'Email wajib diisi.';
-                          if (!v.contains('@'))
+                          }
+                          if (!v.contains('@')) {
                             return 'Format email tidak valid.';
+                          }
                           return null;
                         },
                       ),
