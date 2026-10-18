@@ -69,11 +69,16 @@ jobs:
           else
             echo "::warning::SUPABASE_URL/SUPABASE_ANON_KEY belum di-set sebagai repo secret. APK akan ter-build tetapi login/DB nonaktif (layar 'backend belum dikonfigurasi'). Tambahkan kedua secret tersebut untuk APK yang benar-benar terhubung ke database."
           fi
+          # android-x86_64 (emulator) 19 MB dan tidak pernah dipakai HP asli.
+          # Sisakan arm64-v8a (HP modern) + armeabi-v7a (HP 32-bit lawas) supaya
+          # satu APK tetap bisa dipasang di semua HP: 52 MB -> ~34 MB.
+          # Kalau butuh jalan di emulator, tambahkan android-x86_64 ke daftar.
+          ABI="--target-platform=android-arm64,android-arm"
           if [ -n "$KEYSTORE_PASSWORD" ] && [ -f "$KEYSTORE_PATH" ]; then
-            flutter build apk --release --obfuscate --split-debug-info=debug $DEFINES
+            flutter build apk --release --obfuscate --split-debug-info=debug $ABI $DEFINES
             echo "Built release APK with signature"
           else
-            flutter build apk --debug $DEFINES
+            flutter build apk --debug $ABI $DEFINES
             cp build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/app-release.apk
             echo "Built debug APK (no keystore secrets set)"
           fi
