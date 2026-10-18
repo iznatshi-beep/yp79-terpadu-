@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../core/config.dart';
 import '../core/theme.dart';
 
 /// Komponen state: loading, error, dan empty yang konsisten.

@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import '../../../core/models/role.dart';
 
 /// Informasi profil pengguna yang sedang login.

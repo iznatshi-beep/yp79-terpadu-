@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
@@ -15,7 +14,7 @@ class AppConfig {
   static String get supabaseUrl {
     if (dotenv.isInitialized) {
       final v = dotenv.get('SUPABASE_URL');
-      if (v != null && v.isNotEmpty) return v;
+      if (v.isNotEmpty) return v;
     }
     return _defaultUrl;
   }
@@ -24,7 +23,7 @@ class AppConfig {
   static String get supabaseAnonKey {
     if (dotenv.isInitialized) {
       final v = dotenv.get('SUPABASE_ANON_KEY');
-      if (v != null && v.isNotEmpty) return v;
+      if (v.isNotEmpty) return v;
     }
     return _defaultAnonKey;
   }

@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Peran pengguna dalam sistem sekolah terpadu.
 enum Role {
   admin('Administrator'),

@@ -13,7 +13,8 @@ class AkademikPage extends StatefulWidget {
 }
 
 class _AkademikPageState extends State<AkademikPage> {
-  int _tab = 0;
+  // Field `_tab` dihapus: tidak pernah dibaca (analyzer: unused_field).
+  // Navigasi tab ditangani DefaultTabController.
 
   @override
   Widget build(BuildContext context) {

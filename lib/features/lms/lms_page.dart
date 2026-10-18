@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
