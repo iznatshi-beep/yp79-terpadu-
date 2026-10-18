@@ -152,6 +152,45 @@ Fingerprint debug lokal (untuk `flutter run` di PC, opsional):
 Cara memeriksa SHA dari APK mana pun (tanpa JDK):
 `python tools/apk_signer.py <file.apk>`
 
+### Google Sign-In — konfigurasi Supabase Auth
+
+Masuk dengan Google memakai alur ID token: `google_sign_in` mengambil ID token
+lalu ditukar ke sesi Supabase lewat `signInWithIdToken`. Supabase memverifikasi
+klaim `aud` (audience) token, jadi daftar client ID yang diizinkan **harus** berisi
+Web client ID aplikasi ini:
+
+```
+external_google_client_id (Web client, project Firebase yp79-1793d) :
+  430633774743-kjor8f15kvjnbmfpmvo3lva17mff393j.apps.googleusercontent.com
+```
+
+Gejala bila daftar ini salah — persis error yang pernah muncul di lapangan:
+
+```
+AuthApiException: Unacceptable audience in id_token: [...] (statusCode: 400)
+```
+
+Nilai ini disetel lewat Management API:
+
+```
+PATCH https://api.supabase.com/v1/projects/<ref>/config/auth
+  { "external_google_client_id": "<web client id>" }
+```
+
+Catatan penting:
+
+- ID token flow **tidak memakai** `external_google_secret`, jadi ketidakcocokan
+  secret tidak menghalangi login dari aplikasi Android. Secret hanya dipakai
+  untuk alur redirect OAuth berbasis browser.
+- ID token dari `google_sign_in` tidak membawa nonce, dan Supabase project ini
+  sudah `external_google_skip_nonce_check = true`.
+- Jangan menyetel `external_google_additional_client_ids` lewat Management API:
+  menulis field itu menimpa balik `external_google_client_id`. Gunakan satu
+  `external_google_client_id` saja, lalu verifikasi hasilnya seperti di bawah.
+- Verifikasi konfigurasi:
+  `GET https://api.supabase.com/v1/projects/<ref>/config/auth` dan pastikan
+  `external_google_client_id` sama dengan Web client ID di atas.
+
 ### Modul lain
 
 | Modul | Status | Keterangan |
