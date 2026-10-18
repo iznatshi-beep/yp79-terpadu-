@@ -92,6 +92,19 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 5
 
+      - name: Upload simbol Dart (buat baca stack trace crash)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: yp79-simbol-debug
+          # --obfuscate + --split-debug-info bikin stack trace Crashlytics tidak
+          # kebaca tanpa file ini. Cara pakai:
+          #   flutter symbolize -i trace.txt -d app.android-arm64.symbols
+          path: debug/
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Release APK
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: softprops/action-gh-release@v2
