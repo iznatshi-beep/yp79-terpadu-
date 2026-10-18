@@ -323,8 +323,10 @@ def main() -> int:
     print("\n=== SELESAI ===")
     print(f"URL   : {url}")
     print(f"ref   : {ref}")
-    print("Langkah manual yang tersisa: bikin akun admin pertama di Supabase Auth")
-    print('(User Metadata: {"role":"admin","nama":"Administrator"}).')
+    print("Langkah manual yang tersisa: tidak ada. Akun dibuat dari aplikasi — ")
+    print("  dashboard Admin -> Aksi Cepat -> Kelola Akun -> Buat akun.")
+    print("  Akun admin pertama (bila seluruh database masih kosong) dapat dibuat ")
+    print("  lewat SQL Management API, lihat catatan di README-SETUP.md.")
     print("PENTING: revoke token sbp_ yang dipakai ini setelah selesai.")
     return 0
 
