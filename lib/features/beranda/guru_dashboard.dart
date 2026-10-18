@@ -5,6 +5,10 @@ import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/dashboard_widgets.dart';
+import '../../../widgets/quick_actions.dart';
+import '../akademik/nilai_input_page.dart';
+import '../akademik/presensi_input_page.dart';
+import '../izin/izin_page.dart';
 
 /// Dashboard Guru: kelas yang diampu + presensi + materi + tugas.
 class GuruDashboard extends StatelessWidget {
@@ -33,7 +37,30 @@ class GuruDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SectionHeader(title: 'Kelas & Mata Pelajaran Diampu'),
+                  const SectionHeader(title: 'Aksi Cepat'),
+                  const SizedBox(height: 6),
+                  ModulAksiGrid(
+                    items: [
+                      ModulAksi(
+                        label: 'Input Presensi',
+                        icon: Icons.fact_check_outlined,
+                        builder: (_) => PresensiInputPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Input Nilai',
+                        icon: Icons.grade_outlined,
+                        builder: (_) => NilaiInputPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Pengajuan Izin',
+                        icon: Icons.event_busy_outlined,
+                        builder: (_) => IzinPage(profile: profile),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const SectionHeader(
+                      title: 'Kelas & Mata Pelajaran Diampu'),
                   if (assignments.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(16),

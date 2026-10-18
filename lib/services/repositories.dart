@@ -156,6 +156,24 @@ class Repos {
     }
   }
 
+  /// Nama & NIS siswa untuk daftar id — dipakai orang tua untuk menampilkan
+  /// anak yang terhubung ke akunnya.
+  static Future<QueryResult<RowData>> studentsByIds(List<String> ids) async {
+    if (ids.isEmpty) return const QueryResult<RowData>(data: []);
+    try {
+      final rows = await db
+          .from('student_profiles')
+          .select('user_id, nis, nama_lengkap')
+          .inFilter('user_id', ids)
+          .order('nama_lengkap');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
   // ---------- PRESSENSI ----------
 
   static Future<QueryResult<RowData>> attendance({

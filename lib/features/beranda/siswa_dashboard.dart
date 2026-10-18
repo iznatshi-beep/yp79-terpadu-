@@ -5,6 +5,8 @@ import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/dashboard_widgets.dart';
+import '../../../widgets/quick_actions.dart';
+import '../izin/izin_page.dart';
 
 /// Dashboard Siswa: presensi hari ini + jadwal + tugas + ujian.
 class SiswaDashboard extends StatelessWidget {
@@ -36,6 +38,18 @@ class SiswaDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SectionHeader(title: 'Aksi Cepat'),
+                  const SizedBox(height: 6),
+                  ModulAksiGrid(
+                    items: [
+                      ModulAksi(
+                        label: 'Ajukan Izin',
+                        icon: Icons.event_busy_outlined,
+                        builder: (_) => IzinPage(profile: profile),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   const SectionHeader(title: 'Presensi Hari Ini'),
                   Container(
                     margin: const EdgeInsets.only(bottom: 10),

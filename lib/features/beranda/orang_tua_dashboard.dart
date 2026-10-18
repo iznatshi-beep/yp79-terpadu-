@@ -5,6 +5,8 @@ import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/dashboard_widgets.dart';
+import '../../../widgets/quick_actions.dart';
+import '../izin/izin_page.dart';
 
 /// Dashboard Orang Tua: memilih anak → presensi + nilai + pembiayaan anak.
 class OrangTuaDashboard extends StatelessWidget {
@@ -50,6 +52,18 @@ class _AnakListState extends State<_AnakList> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SectionHeader(title: 'Aksi Cepat'),
+              const SizedBox(height: 6),
+              ModulAksiGrid(
+                items: [
+                  ModulAksi(
+                    label: 'Ajukan Izin',
+                    icon: Icons.event_busy_outlined,
+                    builder: (_) => IzinPage(profile: widget.profile),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               const SectionHeader(title: 'Pilih Anak'),
               const SizedBox(height: 4),
               SingleChildScrollView(
