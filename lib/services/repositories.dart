@@ -18,6 +18,12 @@ class QueryResult<T> {
 /// Helper untuk membangun filter Supabase yang konsisten.
 /// Kembalikan `dynamic` karena chain `.order()`/`.limit()` mengubah tipe
 /// builder menjadi PostgrestTransformBuilder, dan kita hanya memakai filter.
+/// PENTING: bertipe `dynamic` dengan sengaja.
+/// Rantai `.order()`/`.limit()` mengembalikan `PostgrestTransformBuilder`
+/// sedangkan `.eq()`/`.gte()` mengembalikan `PostgrestFilterBuilder`, dan
+/// pemanggil butuh keduanya pada builder yang sama. Memakai tipe eksplisit
+/// membuat build gagal (lihat riwayat CI), jadi builder di-`dynamic`-kan
+/// namun tetap di-await dengan benar oleh pemanggil.
 dynamic _filter(
   String table, {
   String select = '*',
@@ -25,7 +31,7 @@ dynamic _filter(
   bool ascending = true,
   int? limit,
 }) {
-  var q = Supabase.instance.client.from(table).select(select);
+  dynamic q = Supabase.instance.client.from(table).select(select);
   if (orderCol != null) {
     q = q.order(orderCol, ascending: ascending);
   }
@@ -62,8 +68,10 @@ class Repos {
 
   static Future<QueryResult<RowData>> classes() async {
     try {
-      final rows =
-          await db.from('classes').select('*, subjects (kode, nama)');
+      // Catatan: tabel `classes` TIDAK punya kolom subject_id, jadi embedded
+      // select `subjects(...)` selalu ditolak PostgREST (400). Relasi kelas↔mapel
+      // yang benar ada di `schedules` / `teacher_assignments`.
+      final rows = await db.from('classes').select();
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);

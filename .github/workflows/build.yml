@@ -34,6 +34,14 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Analyze (non-blocking, laporan saja)
+        continue-on-error: true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Unit & widget test
+        continue-on-error: true
+        run: flutter test --reporter expanded
+
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -51,12 +59,21 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_KEYPASSWORD: ${{ secrets.KEYSTORE_KEYPASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          DEFINES=""
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            DEFINES="--dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+            echo "Backend dikonfigurasi lewat --dart-define."
+          else
+            echo "::warning::SUPABASE_URL/SUPABASE_ANON_KEY belum di-set sebagai repo secret. APK akan ter-build tetapi login/DB nonaktif (layar 'backend belum dikonfigurasi'). Tambahkan kedua secret tersebut untuk APK yang benar-benar terhubung ke database."
+          fi
           if [ -n "$KEYSTORE_PASSWORD" ] && [ -f "$KEYSTORE_PATH" ]; then
-            flutter build apk --release --obfuscate --split-debug-info=debug
+            flutter build apk --release --obfuscate --split-debug-info=debug $DEFINES
             echo "Built release APK with signature"
           else
-            flutter build apk --debug
+            flutter build apk --debug $DEFINES
             cp build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/app-release.apk
             echo "Built debug APK (no keystore secrets set)"
           fi

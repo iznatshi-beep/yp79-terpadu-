@@ -49,5 +49,11 @@ app.*.map.json
 
 # Keystore & credentials (jangan pernah commit ke repo)
 *.keystore
+*.keystore.*
+*.jks
 key.properties
 local.properties
+# Rahasia lingkungan
+.env
+.env.*
+!.env.example

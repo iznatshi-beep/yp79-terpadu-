@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/config.dart';
 import '../../../core/models/session_profile.dart';
@@ -10,8 +9,27 @@ import '../beranda/beranda_page.dart';
 import '../login/login_page.dart';
 
 /// Gate utama: tampilkan login atau dashboard beranda sesuai status auth.
-class AuthGate extends StatelessWidget {
+///
+/// Stream dibuat SEKALI di initState, bukan di dalam build(). Sebelumnya root
+/// app memakai `AuthBootstrapPage` yang hanya membaca session satu kali,
+/// sehingga login berhasil tetapi layar tidak pernah berpindah ke dashboard.
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  Stream<SessionProfile?>? _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    if (AppConfig.isConfigured) {
+      _stream = AuthService.sessionStream();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +37,14 @@ class AuthGate extends StatelessWidget {
       return const _NoBackendGate();
     }
     return StreamBuilder<SessionProfile?>(
-      stream: AuthService.sessionStream(),
-      initialData: null,
+      stream: _stream,
       builder: (context, snap) {
+        if (snap.hasError) {
+          return _AuthErrorScreen(message: '${snap.error}');
+        }
+        if (!snap.hasData) {
+          return const _SplashScreen();
+        }
         final profile = snap.data;
         if (profile == null) {
           return const LoginPage();
@@ -51,66 +74,86 @@ class _NoBackendGate extends StatelessWidget {
   }
 }
 
-/// Halaman bootstrap: baca session saat ini, tampilkan beranda atau login.
-class AuthBootstrapPage extends StatefulWidget {
+/// Titik masuk root app (dipakai `lib/app.dart`).
+class AuthBootstrapPage extends StatelessWidget {
   const AuthBootstrapPage({super.key});
 
   @override
-  State<AuthBootstrapPage> createState() => _AuthBootstrapPageState();
+  Widget build(BuildContext context) => const AuthGate();
 }
 
-class _AuthBootstrapPageState extends State<AuthBootstrapPage> {
-  SessionProfile? _profile;
-  bool _initialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
-  Future<void> _init() async {
-    if (!AppConfig.isConfigured) {
-      if (mounted) setState(() => _initialized = true);
-      return;
-    }
-    final p = await AuthService.currentProfile();
-    if (mounted) {
-      setState(() {
-        _profile = p;
-        _initialized = true;
-      });
-    }
-  }
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
-      return Scaffold(
-        body: Center(
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: const Icon(Icons.school_rounded,
+                  color: Colors.white, size: 36),
+            ),
+            const SizedBox(height: 18),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Memuat data sesi...',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthErrorScreen extends StatelessWidget {
+  const _AuthErrorScreen({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SvgPicture.asset(
-                'assets/logo.svg',
-                width: 72,
-                height: 72,
-                placeholderBuilder: (_) => const CircularProgressIndicator(),
-              ),
-              const SizedBox(height: 16),
+              const Icon(Icons.cloud_off_rounded,
+                  size: 44, color: AppColors.danger),
+              const SizedBox(height: 12),
               const Text(
-                'Memuat...',
+                'Gagal membaca sesi',
                 style: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 12.5, color: AppColors.textSecondary),
               ),
             ],
           ),
         ),
-      );
-    }
-    if (_profile != null) {
-      return BerandaPage(profile: _profile!);
-    }
-    return const LoginPage();
+      ),
+    );
   }
 }
