@@ -3,10 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../core/config.dart';
 import '../../../core/theme.dart';
 import '../../../services/api.dart';
+import '../../../services/google_auth.dart';
 import '../../../widgets/app_states.dart';
 
 /// Layar login aplikasi YP79 Terpadu.
-/// Autentikasi nyata: Supabase Auth email+password.
+///
+/// Autentikasi nyata: Supabase Auth (email + kata sandi) dan Google Sign-In.
+///
+/// PENTING: halaman ini mengembalikan [Scaffold] sendiri. Sebelumnya ia hanya
+/// mengembalikan `Column` dan bergantung pada pembungkus di luar; begitu jalur
+/// auth memanggilnya langsung, layar menjadi HITAM dengan garis kuning di bawah
+/// teks (tanda widget tidak punya leluhur Material/Scaffold).
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -48,6 +55,24 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Masuk dengan Google: ID token dari Google ditukar menjadi sesi Supabase.
+  /// Tidak ada jalur yang selalu berhasil — kegagalan ditampilkan apa adanya.
+  Future<void> _google() async {
+    setState(() => _loading = true);
+    try {
+      await GoogleAuth.masuk();
+      _toast('Berhasil masuk dengan Google.', durasi: 2, sukses: true);
+    } on GoogleAuthDibatalkan {
+      // Pengguna menutup pemilih akun: bukan kesalahan.
+    } on GoogleAuthGagal catch (e) {
+      _toast(e.pesan, durasi: 8);
+    } catch (e) {
+      _toast('Gagal masuk dengan Google: $e', durasi: 8);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   /// Kirim tautan reset kata sandi ke email terdaftar — fungsi nyata
   /// Supabase Auth, menggantikan tombol dekoratif sebelumnya.
   Future<void> _resetPassword() async {
@@ -82,12 +107,16 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final backendReady = AppConfig.isConfigured;
-    return Column(
+    final googleSiap = backendReady && GoogleAuth.tersedia;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
       children: [
         if (!backendReady) const AppStatesBackendUnavailableBanner(),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -213,8 +242,54 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                       ),
                       const SizedBox(height: 18),
-                      const Divider(height: 1),
+                      // Pembatas "atau" + tombol Google, seperti showcase.
+                      const Row(
+                        children: [
+                          Expanded(child: Divider(height: 1)),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              'atau',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Expanded(child: Divider(height: 1)),
+                        ],
+                      ),
+
                       const SizedBox(height: 14),
+                      OutlinedButton.icon(
+                        // Nonaktif (dengan alasan tertulis) bila backend belum
+                        // siap atau GOOGLE_WEB_CLIENT_ID belum diisi — bukan
+                        // tombol dekoratif yang diam-diam tidak bekerja.
+                        onPressed: googleSiap && !_loading ? _google : null,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          side: const BorderSide(color: AppColors.line),
+                          foregroundColor: AppColors.ink,
+                        ),
+                        icon: const _LambangGoogle(),
+                        label: const Text(
+                          'Masuk dengan Google',
+                          style: TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (backendReady && !googleSiap) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Masuk dengan Google belum aktif di build ini '
+                          '(GOOGLE_WEB_CLIENT_ID belum diisi).',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 11.5, color: AppColors.textSecondary),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
                       Text(
                         backendReady
                             ? 'Akun baru dibuat oleh pihak sekolah. '
@@ -227,12 +302,69 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ],
+        ),
+      ),
     );
   }
+}
+
+/// Lambang "G" Google empat warna, digambar manual supaya tidak menambah
+/// paket aset hanya untuk satu ikon.
+class _LambangGoogle extends StatelessWidget {
+  const _LambangGoogle();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _PainterGoogleG()),
+    );
+  }
+}
+
+class _PainterGoogleG extends CustomPainter {
+  const _PainterGoogleG();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final c = Offset(r, r);
+    final rect = Rect.fromCircle(center: c, radius: r * 0.82);
+    final stroke = r * 0.46;
+
+    void busur(double mulai, double sapuan, Color warna) {
+      canvas.drawArc(
+        rect,
+        mulai,
+        sapuan,
+        false,
+        Paint()
+          ..color = warna
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.butt,
+      );
+    }
+
+    // Sudut dalam radian; -pi/2 adalah arah jam 12.
+    busur(-1.05, 2.10, const Color(0xFF4285F4)); // biru (kanan)
+    busur(1.05, 1.57, const Color(0xFF34A853)); // hijau (kiri bawah)
+    busur(2.62, 1.10, const Color(0xFFFBBC05)); // kuning (bawah)
+    busur(-2.60, 1.55, const Color(0xFFEA4335)); // merah (atas)
+    // Batang horizontal huruf G.
+    canvas.drawRect(
+      Rect.fromLTWH(r * 0.98, r * 0.42, r * 0.92, r * 0.30),
+      Paint()..color = const Color(0xFF4285F4),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

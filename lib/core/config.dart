@@ -18,6 +18,19 @@ class AppConfig {
   /// Pesan kegagalan Supabase.initialize() saat aplikasi dibuka (diisi main).
   static String? lastInitError;
 
+  /// Web client ID OAuth Google (client_type 3 pada google-services.json).
+  ///
+  /// Dipakai sebagai `serverClientId` Google Sign-In; bukan rahasia (memang
+  /// ikut ter-commit di google-services.json). Bila kosong, tombol "Masuk
+  /// dengan Google" tampil nonaktif dengan alasan yang jelas, bukan gagal diam.
+  static String get googleWebClientId {
+    if (dotenv.isInitialized) {
+      final v = dotenv.maybeGet('GOOGLE_WEB_CLIENT_ID');
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+  }
+
   /// URL project Supabase produksi.
   static String get supabaseUrl {
     if (dotenv.isInitialized) {

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import 'app.dart';
 import 'core/config.dart';
+import 'core/auth_bus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -58,6 +59,29 @@ Future<void> main() async {
   } else {
     debugPrint(
         'Backend belum dikonfigurasi (SUPABASE_ANON_KEY kosong). Mode offline.');
+  }
+
+  // Pantau perubahan status autentikasi di titik yang PASTI berjalan, lalu
+  // beri tahu gerbang sesi lewat `authChanged`. Ini pengganti yang andal untuk
+  // kasus `onAuthStateChange` tidak pernah memancarkan event pertama sehingga
+  // aplikasi berhenti di layar "Memuat data sesi...".
+  if (AppConfig.isConfigured) {
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen(
+        (_) => authChanged.value++,
+        onError: (Object e, StackTrace st) {
+          debugPrint('onAuthStateChange error: $e');
+          try {
+            FirebaseCrashlytics.instance.recordError(e, st,
+                reason: 'onAuthStateChange error', fatal: false);
+          } catch (_) {
+            // Crashlytics belum siap: abaikan.
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('Tidak bisa memantau perubahan autentikasi: $e');
+    }
   }
 
   runApp(const Yp79App());
