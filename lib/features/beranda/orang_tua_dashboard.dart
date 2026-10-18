@@ -145,10 +145,9 @@ class _AnakListState extends State<_AnakList> {
                     for (final g in grades.take(8))
                       _GradeRow(
                         mapel:
-                            ((g['subjects'] as Map?)?['kode'] as String? ?? '') +
-                                ' — ' +
-                                ((g['subjects'] as Map?)?['nama'] as String? ??
-                                    ''),
+                            '${(g['subjects'] as Map?)?['kode'] as String? ?? ''}'
+                            ' — '
+                            '${(g['subjects'] as Map?)?['nama'] as String? ?? ''}',
                         kategori: g['kategori'] as String? ?? '',
                         nilai: g['nilai'] == null
                             ? '-'

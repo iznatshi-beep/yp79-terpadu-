@@ -75,9 +75,9 @@ class GuruDashboard extends StatelessWidget {
                       _AssignmentTile(
                         kelas: (a['classes'] as Map?)?['nama'] as String? ?? '',
                         mapel:
-                            ((a['subjects'] as Map?)?['kode'] as String? ?? '') +
-                                ' — ' +
-                            ((a['subjects'] as Map?)?['nama'] as String? ?? ''),
+                            '${(a['subjects'] as Map?)?['kode'] as String? ?? ''}'
+                            ' — '
+                            '${(a['subjects'] as Map?)?['nama'] as String? ?? ''}',
                         peran: a['peran'] as String? ?? 'pengampu',
                         tahunAjaran: a['tahun_ajaran'] as String? ?? '',
                       ),

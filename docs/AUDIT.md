@@ -217,7 +217,10 @@ Angka di bawah hasil pemindaian otomatis `lib/` dan `supabase/migrations/`.
 |---|---|---|
 | Login | `login_page.dart` | Nyata (Supabase Auth) + reset sandi |
 | Shell & navigasi | `shell_page.dart` | Bottom nav per peran; **belum adaptif** (belum ada sidebar untuk tablet) |
-| Beranda 4 peran | `beranda/*_dashboard.dart` | Menampilkan data nyata; **tanpa satu pun tombol aksi** (0 `onPressed`) |
+| Beranda 4 peran | `beranda/*_dashboard.dart` | Menampilkan data nyata + blok **"Aksi Cepat"** yang membuka modul operasional |
+| Input Presensi | `akademik/presensi_input_page.dart` | **BARU** — tersambung ke `upsertAttendance` (guru/admin) |
+| Input Nilai | `akademik/nilai_input_page.dart` | **BARU** — tersambung ke `upsertGrade` (guru/admin) |
+| Pengajuan Izin | `izin/izin_page.dart` | **BARU** — `submitLeave` (ortu/siswa) + `decideLeave` (guru/admin) |
 | Akademik | `akademik_page.dart` | Baca: jadwal, nilai, kelas, presensi hari ini — **tanpa input** |
 | LMS | `lms_page.dart` | Baca materi/tugas/pengumpulan + 5 tombol |
 | CBT | `cbt_page.dart` + `exam_take_page.dart` | **Berfungsi penuh** (satu-satunya alur tulis end-to-end) |
@@ -315,11 +318,12 @@ Catatan penting: karena repo **publik**, jangan pernah commit
 
 Saya tidak mengerjakan hal-hal berikut, dan ini **bukan** karena "sudah selesai":
 
-1. **Menyambungkan 11 jalur tulis ke UI** (presensi guru, input nilai, kumpul
-   tugas, penilaian, pengajuan izin, keputusan izin, chat, peminjaman buku,
-   mutaba'ah, peserta MABIT). Ini pekerjaan besar (belasan layar + form +
-   validasi + dialog konfirmasi). Skema dan fungsi datanya sudah siap; yang
-   kurang adalah layarnya.
+1. **Menyambungkan sisa jalur tulis ke UI.** Sudah tersambung pada putaran ini:
+   presensi guru (`upsertAttendance`), input nilai (`upsertGrade`), pengajuan izin
+   (`submitLeave`) dan keputusan izin (`decideLeave`). **BELUM**: kumpul tugas
+   (`submitAssignment`), penilaian tugas (`gradeSubmission`), chat baca/kirim
+   (`messages`/`sendMessage`), peminjaman buku (`libraryLoans`), mutaba'ah,
+   peserta MABIT. Skema dan fungsi datanya sudah siap; yang kurang layarnya.
 2. **Modul PPDB, Rapor, Janji temu, GPS bus, Consent, Setoran hafalan,
    Pengumuman, Manajemen pengguna, Audit log, Laporan/ekspor.** Tabel-tabelnya
    ada; UI-nya belum ada sama sekali.
@@ -376,6 +380,8 @@ Kredensial untuk APK di CI: cukup `SUPABASE_URL` + `SUPABASE_ANON_KEY`
 | `8e08703` | `docs/AUDIT.md` (dokumen ini) |
 | `563ac80` | Bersih-bersih analyzer: 12 `unused_import`, `unused_field`, 2 `unnecessary_null_comparison` |
 | `887e089` | Import type auth dari `supabase_flutter` (gotrue rapuh), null-aware berlebih — **analyzer 0 warning** |
+| `b0a16a6` | Sinkronisasi dokumentasi (migrasi 0004/0005, secret Supabase, rotasi keystore) |
+| `bf2bcb3` | **Jalur tulis tersambung**: halaman Input Presensi, Input Nilai, Pengajuan/Keputusan Izin + grid "Aksi Cepat" di 4 dashboard + `0006_aksi_dan_audit.sql` (policy guru untuk upsert presensi, trigger audit log otomatis) |
 
 Verifikasi terakhir (semua hijau):
 

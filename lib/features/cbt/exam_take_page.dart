@@ -287,19 +287,27 @@ class _ExamTakePageState extends State<ExamTakePage> {
                     onChanged: (v) => _pilih(qid, v),
                   )
                 else
-                  for (final opsi in ['A', 'B', 'C', 'D'])
-                    if (q['opsi_${opsi.toLowerCase()}'] != null)
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        value: opsi,
-                        groupValue: terpilih,
-                        onChanged: (v) => _pilih(qid, v ?? ''),
-                        title: Text(
-                          '$opsi. ${q['opsi_${opsi.toLowerCase()}']}',
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
+                  // RadioGroup menggantikan groupValue/onChanged pada RadioListTile
+                  // yang sudah deprecated sejak Flutter 3.32.
+                  RadioGroup<String>(
+                    groupValue: terpilih,
+                    onChanged: (v) => _pilih(qid, v ?? ''),
+                    child: Column(
+                      children: [
+                        for (final opsi in ['A', 'B', 'C', 'D'])
+                          if (q['opsi_${opsi.toLowerCase()}'] != null)
+                            RadioListTile<String>(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              value: opsi,
+                              title: Text(
+                                '$opsi. ${q['opsi_${opsi.toLowerCase()}']}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

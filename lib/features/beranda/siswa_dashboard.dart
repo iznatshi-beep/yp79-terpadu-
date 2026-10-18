@@ -229,7 +229,7 @@ class _LeaveTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Izin ${jenis} — ${mulai ?? ''}',
+                  'Izin $jenis — ${mulai ?? ''}',
                   style: const TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,

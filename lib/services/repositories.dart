@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:supabase/supabase.dart';
 
 /// Tipe record generik untuk data Supabase.
 typedef RowData = Map<String, dynamic>;
