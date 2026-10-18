@@ -12,7 +12,20 @@
           "package_name": "com.yp79terpadu.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "430633774743-sdurs256lv2ske6krol8146snc4dh048.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yp79terpadu.app",
+            "certificate_hash": "eb87fd8c13d8cc81dad07e357cd03f7560f2a609"
+          }
+        },
+        {
+          "client_id": "430633774743-kjor8f15kvjnbmfpmvo3lva17mff393j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA3Fclgbh8YP__nNDHCy0GJBt3dNVgPQ0o"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "430633774743-kjor8f15kvjnbmfpmvo3lva17mff393j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
