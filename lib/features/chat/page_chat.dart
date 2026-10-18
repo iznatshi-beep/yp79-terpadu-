@@ -185,7 +185,7 @@ class _AnnouncementList extends StatelessWidget {
 }
 
 class _ChatList extends StatefulWidget {
-  const _ChatList({super.key});
+  const _ChatList();
 
   @override
   State<_ChatList> createState() => _ChatListState();
