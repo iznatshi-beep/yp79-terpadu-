@@ -32,10 +32,20 @@ class AdminDashboard extends StatelessWidget {
             }
             final stats = snap.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  HeroSummaryCard(
+                    greeting: 'Assalamualaikum, ${profile.name ?? 'Admin'} 👋',
+                    title: 'Ringkasan operasional hari ini',
+                    value: stats.isEmpty ? '0' : stats.first.value,
+                    subtitle: stats.length > 1
+                        ? '${stats[1].label}: ${stats[1].value} · ${stats[0].subtitle}'
+                        : 'Belum ada data presensi hari ini',
+                    icon: Icons.school_rounded,
+                  ),
+                  const SizedBox(height: 18),
                   const SectionHeader(title: 'Aksi Cepat'),
                   const SizedBox(height: 6),
                   ModulAksiGrid(

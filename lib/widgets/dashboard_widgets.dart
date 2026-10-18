@@ -80,6 +80,86 @@ class DashboardStatCard extends StatelessWidget {
   }
 }
 
+/// Kartu ringkasan besar ala showcase: biru penuh, radius 24, teks putih,
+/// dengan bayangan biru lembut. Perekat visual utama antara app ini dan
+/// mockup TaskFlow.
+class HeroSummaryCard extends StatelessWidget {
+  const HeroSummaryCard({
+    super.key,
+    required this.greeting,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    this.icon = Icons.insights_rounded,
+  });
+
+  final String greeting;
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting,
+            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -1,
+                  height: 1,
+                ),
+              ),
+              const Spacer(),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.35), size: 40),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Kartu judul untuk seksi di dashboard.
 class SectionHeader extends StatelessWidget {
   const SectionHeader({required this.title, this.trailing, super.key});

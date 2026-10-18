@@ -33,10 +33,20 @@ class GuruDashboard extends StatelessWidget {
             }
             final assignments = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  HeroSummaryCard(
+                    greeting: 'Assalamualaikum, ${profile.name ?? 'Guru'} 👋',
+                    title: 'Kelas yang Anda ampu',
+                    value: '${assignments.length}',
+                    subtitle: assignments.isEmpty
+                        ? 'Belum ada penugasan mengajar dari admin'
+                        : 'Penugasan aktif tahun ajaran ini',
+                    icon: Icons.menu_book_rounded,
+                  ),
+                  const SizedBox(height: 18),
                   const SectionHeader(title: 'Aksi Cepat'),
                   const SizedBox(height: 6),
                   ModulAksiGrid(

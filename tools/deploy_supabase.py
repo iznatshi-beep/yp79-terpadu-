@@ -162,10 +162,13 @@ def tunggu_healthy(token: str, ref: str, maks_detik: int = 600) -> None:
     sys.exit(1)
 
 
-def push_migrasi(token: str, ref: str) -> None:
-    files = sorted(p for p in MIGRATIONS.glob("000*.sql"))
+def push_migrasi(token: str, ref: str, only: str | None = None) -> None:
+    if only:
+        files = sorted(MIGRATIONS.glob(f"*{only}*.sql"))
+    else:
+        files = sorted(p for p in MIGRATIONS.glob("000*.sql"))
     if not files:
-        print("Tidak ada file migrasi.")
+        print(f"Tidak ada file migrasi yang cocok (only={only}).")
         sys.exit(1)
     for f in files:
         print(f"=== {f.name} ===")
@@ -240,6 +243,11 @@ def main() -> int:
              "(dipakai kalau memakai project aplikasi lama).",
     )
     ap.add_argument("--skip-gh", action="store_true", help="jangan set GitHub secret")
+    ap.add_argument(
+        "--only",
+        help="hanya push file migrasi tertentu (mis. --only 0008) "
+             "tanpa menyentuh file lain dan tanpa membuat ulang project.",
+    )
     args = ap.parse_args()
 
     token = baca_token()
@@ -269,7 +277,7 @@ def main() -> int:
             sys.exit(1)
         print("  Schema public dikosongkan.")
 
-    push_migrasi(token, ref)
+    push_migrasi(token, ref, args.only)
 
     url = f"https://{ref}.supabase.co"
     key = ambil_key(token, ref)
