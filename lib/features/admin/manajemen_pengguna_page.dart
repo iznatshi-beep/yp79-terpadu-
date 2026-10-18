@@ -278,8 +278,10 @@ class _ManajemenPenggunaPageState extends State<ManajemenPenggunaPage> {
       };
 
   BadgeState _warnaRole(String r) => switch (r) {
-        'admin' => BadgeState.purple,
-        'guru' || 'guru_pembimbing' => BadgeState.info,
+        // BadgeState hanya punya lima keadaan; admin dibedakan dengan `info`
+        // dan teks perannya, bukan warna baru.
+        'admin' => BadgeState.info,
+        'guru' || 'guru_pembimbing' => BadgeState.neutral,
         'orang_tua' => BadgeState.warning,
         _ => BadgeState.success,
       };
