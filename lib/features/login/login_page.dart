@@ -37,7 +37,10 @@ class _LoginPageState extends State<LoginPage> {
             email: _emailCtrl.text.trim(),
             password: _passCtrl.text,
           );
-      _toast('Berhasil masuk. Menyiapkan dashboard...', durasi: 2);
+      // Navigasi tidak dilakukan di sini: AuthGate mendengarkan
+      // onAuthStateChange sehingga layar berpindah otomatis setelah sesi dibuat.
+      _toast('Berhasil masuk. Menyiapkan dashboard...',
+          durasi: 2, sukses: true);
     } on Exception catch (e) {
       _toast('Gagal masuk: $e');
     } finally {
@@ -45,13 +48,33 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _toast(String msg, {int durasi = 4}) {
+  /// Kirim tautan reset kata sandi ke email terdaftar — fungsi nyata
+  /// Supabase Auth, menggantikan tombol dekoratif sebelumnya.
+  Future<void> _resetPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _toast('Isi kolom email dulu, lalu tekan "Lupa kata sandi?".');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await Api.client.auth.resetPasswordForEmail(email);
+      _toast('Tautan reset kata sandi dikirim ke $email. Periksa kotak masuk.',
+          durasi: 6, sukses: true);
+    } on Exception catch (e) {
+      _toast('Gagal mengirim tautan reset: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _toast(String msg, {int durasi = 4, bool sukses = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(msg),
-        backgroundColor: AppColors.danger,
+        backgroundColor: sukses ? AppColors.success : AppColors.danger,
         duration: Duration(seconds: durasi),
       ));
   }
@@ -155,10 +178,7 @@ class _LoginPageState extends State<LoginPage> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: backendReady && !_loading
-                              ? () => _toast(
-                                  'Fungsi pemulihan kata sandi membutuhkan '
-                                      'konfigurasi server. Hubungi admin sekolah.',
-                                )
+                              ? _resetPassword
                               : null,
                           child: const Text(
                             'Lupa kata sandi?',

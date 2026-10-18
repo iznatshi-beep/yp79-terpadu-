@@ -4,6 +4,15 @@ import 'package:supabase/supabase.dart';
 /// Tipe record generik untuk data Supabase.
 typedef RowData = Map<String, dynamic>;
 
+/// Hasil memulai ujian. Sebelumnya `startExam` mengembalikan String yang
+/// ambigu (id attempt ATAU pesan error pada tipe yang sama).
+class StartExamResult {
+  const StartExamResult({this.attemptId, this.error});
+  final String? attemptId;
+  final String? error;
+  bool get ok => attemptId != null && error == null;
+}
+
 /// Hasil query standar.
 class QueryResult<T> {
   const QueryResult({required this.data, this.total, this.error});
@@ -504,18 +513,55 @@ class Repos {
     }
   }
 
+  /// Soal ujian TANPA kunci jawaban (memakai RPC `exam_questions_public`).
+  ///
+  /// Versi lama memakai `.from('exam_questions').select()` yang mengambil
+  /// SELURUH kolom termasuk `kunci`. Penyembunyian di UI bukan keamanan:
+  /// payload sudah terkirim ke perangkat siswa. Sekarang kunci tidak pernah
+  /// meninggalkan database pada jalur ini.
   static Future<QueryResult<RowData>> examQuestions(String examId) async {
     try {
-      final rows = await db
-          .from('exam_questions')
-          .select()
-          .eq('exam_id', examId)
-          .order('urutan');
+      final rows = await db.rpc(
+        'exam_questions_public',
+        params: {'p_exam': examId},
+      );
       return QueryResult<RowData>(data: [
-        for (final r in rows) Map<String, dynamic>.from(r as Map)
+        for (final r in (rows as List))
+          Map<String, dynamic>.from(r as Map)
       ]);
     } catch (e) {
       return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Soal ujian beserta kunci — hanya untuk guru/admin, atau siswa setelah
+  /// ujian berstatus selesai/dipublikasikan (dibatasi di sisi server).
+  static Future<QueryResult<RowData>> examQuestionsWithKey(String examId) async {
+    try {
+      final rows = await db.rpc(
+        'exam_questions_with_key',
+        params: {'p_exam': examId},
+      );
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List))
+          Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Hitung nilai pilihan ganda di server, kembalikan nilai yang diperoleh.
+  static Future<double?> finalizeExam(String attemptId) async {
+    try {
+      final res = await db.rpc(
+        'finalize_cbt',
+        params: {'p_attempt': attemptId},
+      );
+      if (res == null) return null;
+      return double.tryParse(res.toString());
+    } catch (_) {
+      return null;
     }
   }
 
@@ -552,19 +598,21 @@ class Repos {
     }
   }
 
-  static Future<String?> startExam({
+  static Future<StartExamResult> startExam({
     required String examId,
     required String studentId,
   }) async {
     try {
       final exam = await db.from('exams').select().eq('id', examId).limit(1);
-      if (exam.isEmpty) return null;
+      if (exam.isEmpty) {
+        return const StartExamResult(error: 'Ujian tidak ditemukan.');
+      }
       final e = exam.first as Map;
       final now = DateTime.now();
       final mulai = DateTime.tryParse(e['mulai'] as String) ?? now;
       final selesai = DateTime.tryParse(e['selesai'] as String) ?? now;
       if (now.isBefore(mulai) || now.isAfter(selesai)) {
-        return 'Periode ujian tidak aktif.';
+        return const StartExamResult(error: 'Periode ujian tidak aktif.');
       }
       final existing = await db
           .from('exam_attempts')
@@ -578,7 +626,8 @@ class Repos {
               1;
       final maxPercobaan = e['jumlah_percobaan'] as int? ?? 1;
       if (nextPercobaan > maxPercobaan) {
-        return 'Jumlah percobaan sudah tercapai.';
+        return const StartExamResult(
+            error: 'Jumlah percobaan sudah tercapai.');
       }
       final ins = await db
           .from('exam_attempts')
@@ -589,11 +638,15 @@ class Repos {
             'mulai': now.toIso8601String(),
             'status': 'berlangsung',
           })
-          .select()
+          .select('id')
           .single();
-      return ins['id'] as String?;
+      final id = ins['id'] as String?;
+      if (id == null) {
+        return const StartExamResult(error: 'Gagal membuat sesi ujian.');
+      }
+      return StartExamResult(attemptId: id);
     } catch (e) {
-      return e.toString();
+      return StartExamResult(error: e.toString());
     }
   }
 

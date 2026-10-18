@@ -4,7 +4,6 @@ import '../../../core/config.dart';
 import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/auth_service.dart';
-import '../../../widgets/app_states.dart';
 import '../beranda/beranda_page.dart';
 import '../login/login_page.dart';
 
@@ -61,16 +60,10 @@ class _NoBackendGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          const AppStatesBackendUnavailableBanner(),
-          Expanded(
-            child: LoginPage(),
-          ),
-        ],
-      ),
-    );
+    // LoginPage sudah menampilkan banner "Backend belum terhubung" ketika
+    // kredensial belum ada. Sebelumnya banner dirender DUA KALI (di sini dan
+    // di dalam LoginPage) sehingga tampil bertumpuk di layar.
+    return const Scaffold(body: LoginPage());
   }
 }
 
