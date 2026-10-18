@@ -4,23 +4,61 @@
 -- ============================================================================
 
 -- =============================== TYPES ===============================
-create or replace type public.user_role as enum ('admin','guru','guru_pembimbing','siswa','orang_tua');
-create or replace type public.attendance_status as enum ('hadir','terlambat','izin','sakit','alpa');
-create or replace type public.attendance_method as enum ('manual','qr','rfid','mabit');
-create or replace type public.grading_category as enum ('tugas','ujian','harian','prakarya','karakter');
-create or replace type public.assignment_status as enum ('draft','dipublikasikan','dikumpulkan','keterlambatan','dinilai','dikembalikan');
-create or replace type public.exam_status as enum ('draft','aktif','selesai','dipublikasikan');
-create or replace type public.exam_attempt_status as enum ('menunggu','berlangsung','dikumpulkan','dinilai');
-create or replace type public.invoice_status as enum ('menunggu','berhasil','gagal','keterlambatan');
-create or replace type public.ppdb_status as enum ('draf','diajukan','pemeriksaan','perlu_perbaikan','lolos','tidak_lolos');
-create or replace type public.leave_status as enum ('diajukan','diproses','disetujui','ditolak');
-create or replace type public.mabit_participant_status as enum ('terdaftar','check_in','check_out','absen');
-create or replace type public.memorization_status as enum ('diajukan','diverifikasi','ditolak','pengulangan');
-create or replace type public.consent_status as enum ('menunggu','disetujui','ditolak','kedaluwarsa');
-create or replace type public.appointment_status as enum ('diajukan','diterima','ditolak','selesai','dibatalkan');
-create or replace type public.report_status as enum ('draf','periksa','dipublikasikan');
-create or replace type public.notification_target as enum ('semua','admin','guru','siswa','orang_tua','kelas','mabit');
-create or replace type public.bus_status as enum ('aktif','siaga','perjalanan','tidak_tersambung');
+-- PENTING: PostgreSQL TIDAK mendukung `create or replace type` (itu sintaks
+-- Oracle). Versi sebelumnya memakai sintaks itu sehingga SELURUH migrasi 0001
+-- gagal di baris ke-7 dengan: ERROR 42601 syntax error at or near "type".
+-- Enum dibuat lewat blok DO dengan penangkap duplicate_object agar idempoten.
+do $$ begin
+  create type public.user_role as enum ('admin','guru','guru_pembimbing','siswa','orang_tua');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.attendance_status as enum ('hadir','terlambat','izin','sakit','alpa');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.attendance_method as enum ('manual','qr','rfid','mabit');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.grading_category as enum ('tugas','ujian','harian','prakarya','karakter');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.assignment_status as enum ('draft','dipublikasikan','dikumpulkan','keterlambatan','dinilai','dikembalikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.exam_status as enum ('draft','aktif','selesai','dipublikasikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.exam_attempt_status as enum ('menunggu','berlangsung','dikumpulkan','dinilai');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.invoice_status as enum ('menunggu','berhasil','gagal','keterlambatan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.ppdb_status as enum ('draf','diajukan','pemeriksaan','perlu_perbaikan','lolos','tidak_lolos');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.leave_status as enum ('diajukan','diproses','disetujui','ditolak');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.mabit_participant_status as enum ('terdaftar','check_in','check_out','absen');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.memorization_status as enum ('diajukan','diverifikasi','ditolak','pengulangan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.consent_status as enum ('menunggu','disetujui','ditolak','kedaluwarsa');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.appointment_status as enum ('diajukan','diterima','ditolak','selesai','dibatalkan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.report_status as enum ('draf','periksa','dipublikasikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.notification_target as enum ('semua','admin','guru','siswa','orang_tua','kelas','mabit');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.bus_status as enum ('aktif','siaga','perjalanan','tidak_tersambung');
+exception when duplicate_object then null; end $$;
 
 -- =============================== IDENTITAS ===============================
 create table if not exists public.profiles (

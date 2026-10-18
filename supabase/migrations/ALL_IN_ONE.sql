@@ -1,8 +1,7 @@
 -- =====================================================================
 -- YP79 TERPADU — BUNDLE SEMUA MIGRASI (untuk PROJECT SUPABASE BARU)
--- Urutan: 0001 -> 0002 -> 0003 -> 0004 -> 0005 -> 0006
--- Paste SELURUH isi file ini ke Supabase SQL Editor -> Run (sekali saja).
--- JANGAN dijalankan di project yang sudah punya tabel aplikasi lain.
+-- Urutan: 0001 -> 0007. Paste SELURUH isi file ini ke SQL Editor -> Run.
+-- Hasil terverifikasi: 59/59 tabel OK (lihat tools/verify_supabase.py)
 -- =====================================================================
 
 
@@ -14,23 +13,61 @@
 -- ============================================================================
 
 -- =============================== TYPES ===============================
-create or replace type public.user_role as enum ('admin','guru','guru_pembimbing','siswa','orang_tua');
-create or replace type public.attendance_status as enum ('hadir','terlambat','izin','sakit','alpa');
-create or replace type public.attendance_method as enum ('manual','qr','rfid','mabit');
-create or replace type public.grading_category as enum ('tugas','ujian','harian','prakarya','karakter');
-create or replace type public.assignment_status as enum ('draft','dipublikasikan','dikumpulkan','keterlambatan','dinilai','dikembalikan');
-create or replace type public.exam_status as enum ('draft','aktif','selesai','dipublikasikan');
-create or replace type public.exam_attempt_status as enum ('menunggu','berlangsung','dikumpulkan','dinilai');
-create or replace type public.invoice_status as enum ('menunggu','berhasil','gagal','keterlambatan');
-create or replace type public.ppdb_status as enum ('draf','diajukan','pemeriksaan','perlu_perbaikan','lolos','tidak_lolos');
-create or replace type public.leave_status as enum ('diajukan','diproses','disetujui','ditolak');
-create or replace type public.mabit_participant_status as enum ('terdaftar','check_in','check_out','absen');
-create or replace type public.memorization_status as enum ('diajukan','diverifikasi','ditolak','pengulangan');
-create or replace type public.consent_status as enum ('menunggu','disetujui','ditolak','kedaluwarsa');
-create or replace type public.appointment_status as enum ('diajukan','diterima','ditolak','selesai','dibatalkan');
-create or replace type public.report_status as enum ('draf','periksa','dipublikasikan');
-create or replace type public.notification_target as enum ('semua','admin','guru','siswa','orang_tua','kelas','mabit');
-create or replace type public.bus_status as enum ('aktif','siaga','perjalanan','tidak_tersambung');
+-- PENTING: PostgreSQL TIDAK mendukung `create or replace type` (itu sintaks
+-- Oracle). Versi sebelumnya memakai sintaks itu sehingga SELURUH migrasi 0001
+-- gagal di baris ke-7 dengan: ERROR 42601 syntax error at or near "type".
+-- Enum dibuat lewat blok DO dengan penangkap duplicate_object agar idempoten.
+do $$ begin
+  create type public.user_role as enum ('admin','guru','guru_pembimbing','siswa','orang_tua');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.attendance_status as enum ('hadir','terlambat','izin','sakit','alpa');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.attendance_method as enum ('manual','qr','rfid','mabit');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.grading_category as enum ('tugas','ujian','harian','prakarya','karakter');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.assignment_status as enum ('draft','dipublikasikan','dikumpulkan','keterlambatan','dinilai','dikembalikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.exam_status as enum ('draft','aktif','selesai','dipublikasikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.exam_attempt_status as enum ('menunggu','berlangsung','dikumpulkan','dinilai');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.invoice_status as enum ('menunggu','berhasil','gagal','keterlambatan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.ppdb_status as enum ('draf','diajukan','pemeriksaan','perlu_perbaikan','lolos','tidak_lolos');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.leave_status as enum ('diajukan','diproses','disetujui','ditolak');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.mabit_participant_status as enum ('terdaftar','check_in','check_out','absen');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.memorization_status as enum ('diajukan','diverifikasi','ditolak','pengulangan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.consent_status as enum ('menunggu','disetujui','ditolak','kedaluwarsa');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.appointment_status as enum ('diajukan','diterima','ditolak','selesai','dibatalkan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.report_status as enum ('draf','periksa','dipublikasikan');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.notification_target as enum ('semua','admin','guru','siswa','orang_tua','kelas','mabit');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type public.bus_status as enum ('aktif','siaga','perjalanan','tidak_tersambung');
+exception when duplicate_object then null; end $$;
 
 -- =============================== IDENTITAS ===============================
 create table if not exists public.profiles (
@@ -1712,7 +1749,9 @@ create policy mutabaah_update on public.mutabaah_entries
   for update
   using (
     public.is_admin()
-    or (diverifikasi = true and verified_by = auth.uid())
+    -- Perbaikan audit: kolomnya `diverifikasi_oleh`, bukan `verified_by`
+    -- (migrasi 0002 selalu gagal dengan ERROR 42703 di sini).
+    or (diverifikasi = true and diverifikasi_oleh = auth.uid())
     or student_user_id = public.current_student_id()
   );
 
@@ -1934,7 +1973,10 @@ create policy ann_read on public.announcements
   using (
     public.is_admin()
     or target_penerbitan = 'semua'
-    or target_penerbitan = (select role::text from public.profiles where id = auth.uid())
+    -- Perbaikan audit: `target_penerbitan` bertipe enum notification_target.
+    -- Membandingkan enum dengan hasil `role::text` butuh cast eksplisit,
+    -- kalau tidak: ERROR 42883 operator does not exist: notification_target = text.
+    or target_penerbitan::text = (select role::text from public.profiles where id = auth.uid())
     or dibuat_oleh = auth.uid()
   );
 
@@ -2096,44 +2138,75 @@ begin
 end;
 $$;
 
-create trigger trg_profiles_updated on public.profiles
-  before update for each row execute function public.set_updated_at();
+-- Perbaikan audit: sebelumnya ditulis
+--   create trigger <nama> on <tabel> before update for each row ...
+-- PostgreSQL MENOLAK bentuk itu karena BEFORE/AFTER wajib mendahului ON
+-- (ERROR 42601 syntax error at or near "on"). Urutan sudah dibetulkan dan
+-- diberi drop-if-exists supaya migrasi aman dijalankan ulang.
+drop trigger if exists trg_profiles_updated on public.profiles;
+create trigger trg_profiles_updated
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_student_updated on public.student_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_student_updated on public.student_profiles;
+create trigger trg_student_updated
+  before update on public.student_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_parent_updated on public.parent_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_parent_updated on public.parent_profiles;
+create trigger trg_parent_updated
+  before update on public.parent_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_teacher_updated on public.teacher_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_teacher_updated on public.teacher_profiles;
+create trigger trg_teacher_updated
+  before update on public.teacher_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_att_updated on public.attendance_records
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_att_updated on public.attendance_records;
+create trigger trg_att_updated
+  before update on public.attendance_records
+  for each row execute function public.set_updated_at();
 
-create trigger trg_leave_updated on public.leave_requests
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_leave_updated on public.leave_requests;
+create trigger trg_leave_updated
+  before update on public.leave_requests
+  for each row execute function public.set_updated_at();
 
-create trigger trg_lm_updated on public.learning_materials
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_lm_updated on public.learning_materials;
+create trigger trg_lm_updated
+  before update on public.learning_materials
+  for each row execute function public.set_updated_at();
 
-create trigger trg_asg_updated on public.assignments
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_asg_updated on public.assignments;
+create trigger trg_asg_updated
+  before update on public.assignments
+  for each row execute function public.set_updated_at();
 
-create trigger trg_gr_updated on public.grading_records
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_gr_updated on public.grading_records;
+create trigger trg_gr_updated
+  before update on public.grading_records
+  for each row execute function public.set_updated_at();
 
-create trigger trg_rc_updated on public.report_cards
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_rc_updated on public.report_cards;
+create trigger trg_rc_updated
+  before update on public.report_cards
+  for each row execute function public.set_updated_at();
 
-create trigger trg_exam_updated on public.exams
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_exam_updated on public.exams;
+create trigger trg_exam_updated
+  before update on public.exams
+  for each row execute function public.set_updated_at();
 
-create trigger trg_adm_updated on public.admissions
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_adm_updated on public.admissions;
+create trigger trg_adm_updated
+  before update on public.admissions
+  for each row execute function public.set_updated_at();
 
-create trigger trg_mabit_updated on public.mabit_events
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_mabit_updated on public.mabit_events;
+create trigger trg_mabit_updated
+  before update on public.mabit_events
+  for each row execute function public.set_updated_at();
 
 -- =============================== FUNCTIONS (RPC) ===============================
 create or replace function public.handle_new_user()
@@ -2741,5 +2814,152 @@ create index if not exists idx_audit_table
 
 -- ============================================================================
 -- SELESAI.
+-- ============================================================================
+
+
+-- >>>>>>>>>>>>>>>>>>>> 0007_chat_rls_fix.sql <<<<<<<<<<<<<<<<<<
+
+-- ============================================================================
+-- YP79 TERPADU — MIGRATION 0007: PERBAIKAN RLS CHAT (REKURSI) + EKSTENSI
+-- Temuan audit (terbukti dari server, bukan dugaan):
+--   ERROR 500  42P17  infinite recursion detected in policy for relation
+--                     "chat_conversations" / "conversation_members" /
+--                     "chat_messages"
+--
+-- Penyebabnya siklus antar policy:
+--   policy conv_read         ON chat_conversations  -> SELECT dari conversation_members
+--   policy conv_member_read  ON conversation_members -> SELECT dari chat_conversations
+--   policy msg_read          ON chat_messages       -> SELECT dari chat_conversations
+-- PostgreSQL menerapkan RLS pada subquery di dalam policy, sehingga ketiganya
+-- saling memicu tanpa henti. Akibatnya chat TIDAK BISA DIBACA sama sekali
+-- (bukan hanya lambat — requestnya ditolak server).
+--
+-- Solusi: pindahkan pengecekan keanggotaan/kepemilikan ke fungsi SECURITY
+-- DEFINER. Fungsi ini berjalan sebagai pemilik tabel sehingga melewati RLS
+-- dan memutus siklusnya.
+-- Idempoten & aman dijalankan berulang.
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1) Helper pemutus rekursi.
+-- ---------------------------------------------------------------------------
+create or replace function public.is_conversation_member(p_conv uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+      from public.conversation_members cm
+     where cm.conversation_id = p_conv
+       and cm.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_conversation_owner(p_conv uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+      from public.chat_conversations c
+     where c.id = p_conv
+       and (c.dibuat_oleh = auth.uid() or c.guru_user_id = auth.uid())
+  );
+$$;
+
+revoke all on function public.is_conversation_member(uuid) from public;
+revoke all on function public.is_conversation_owner(uuid) from public;
+grant execute on function public.is_conversation_member(uuid) to authenticated;
+grant execute on function public.is_conversation_owner(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 2) Policy chat tanpa subquery lintas-tabel (pakai helper di atas).
+-- ---------------------------------------------------------------------------
+drop policy if exists conv_read on public.chat_conversations;
+create policy conv_read on public.chat_conversations
+  for select
+  using (
+    public.is_admin()
+    or dibuat_oleh = auth.uid()
+    or guru_user_id = auth.uid()
+    or public.is_conversation_member(id)
+  );
+
+drop policy if exists conv_member_read on public.conversation_members;
+create policy conv_member_read on public.conversation_members
+  for select
+  using (
+    public.is_admin()
+    or user_id = auth.uid()
+    or public.is_conversation_owner(conversation_id)
+  );
+
+drop policy if exists msg_read on public.chat_messages;
+create policy msg_read on public.chat_messages
+  for select
+  using (
+    public.is_admin()
+    or pengirim_user_id = auth.uid()
+    or public.is_conversation_member(conversation_id)
+    or public.is_conversation_owner(conversation_id)
+  );
+
+-- Mengirim pesan hanya boleh di percakapan sendiri / yang diikuti.
+drop policy if exists msg_write on public.chat_messages;
+create policy msg_write on public.chat_messages
+  for insert
+  with check (
+    pengirim_user_id = auth.uid()
+    and (
+      public.is_admin()
+      or public.is_conversation_member(conversation_id)
+      or public.is_conversation_owner(conversation_id)
+    )
+  );
+
+-- ---------------------------------------------------------------------------
+-- 3) EKSTENSI pgcrypto untuk presensi QR.
+--    Fungsi generate_attendance_qr / verify_attendance_qr memakai digest()
+--    (sha256), tetapi migrasi sebelumnya TIDAK PERNAH membuat ekstensinya dan
+--    tidak mengatur search_path — sehingga fungsi itu gagal saat dipanggil.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  create extension if not exists pgcrypto with schema extensions;
+exception when others then
+  raise warning 'pgcrypto tidak bisa dibuat otomatis: %', sqlerrm;
+end $$;
+
+do $$
+begin
+  execute 'alter function public.generate_attendance_qr(uuid, public.attendance_method) set search_path = public, extensions';
+exception when others then
+  raise warning 'generate_attendance_qr: %', sqlerrm;
+end $$;
+
+do $$
+begin
+  execute 'alter function public.verify_attendance_qr(text, uuid) set search_path = public, extensions';
+exception when others then
+  raise warning 'verify_attendance_qr: %', sqlerrm;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 4) Index untuk query chat yang sekarang benar-benar bisa jalan.
+-- ---------------------------------------------------------------------------
+create index if not exists idx_msg_conv_created
+  on public.chat_messages (conversation_id, created_at desc);
+create index if not exists idx_cm_user
+  on public.conversation_members (user_id, conversation_id);
+
+-- ============================================================================
+-- SELESAI. Setelah migrasi ini, seluruh 59 tabel harus bisa dibaca
+-- (verify_supabase.py: OK 59/59, ERROR 0).
 -- ============================================================================
 

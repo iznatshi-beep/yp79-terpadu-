@@ -968,7 +968,9 @@ create policy mutabaah_update on public.mutabaah_entries
   for update
   using (
     public.is_admin()
-    or (diverifikasi = true and verified_by = auth.uid())
+    -- Perbaikan audit: kolomnya `diverifikasi_oleh`, bukan `verified_by`
+    -- (migrasi 0002 selalu gagal dengan ERROR 42703 di sini).
+    or (diverifikasi = true and diverifikasi_oleh = auth.uid())
     or student_user_id = public.current_student_id()
   );
 
@@ -1190,7 +1192,10 @@ create policy ann_read on public.announcements
   using (
     public.is_admin()
     or target_penerbitan = 'semua'
-    or target_penerbitan = (select role::text from public.profiles where id = auth.uid())
+    -- Perbaikan audit: `target_penerbitan` bertipe enum notification_target.
+    -- Membandingkan enum dengan hasil `role::text` butuh cast eksplisit,
+    -- kalau tidak: ERROR 42883 operator does not exist: notification_target = text.
+    or target_penerbitan::text = (select role::text from public.profiles where id = auth.uid())
     or dibuat_oleh = auth.uid()
   );
 
@@ -1352,44 +1357,75 @@ begin
 end;
 $$;
 
-create trigger trg_profiles_updated on public.profiles
-  before update for each row execute function public.set_updated_at();
+-- Perbaikan audit: sebelumnya ditulis
+--   create trigger <nama> on <tabel> before update for each row ...
+-- PostgreSQL MENOLAK bentuk itu karena BEFORE/AFTER wajib mendahului ON
+-- (ERROR 42601 syntax error at or near "on"). Urutan sudah dibetulkan dan
+-- diberi drop-if-exists supaya migrasi aman dijalankan ulang.
+drop trigger if exists trg_profiles_updated on public.profiles;
+create trigger trg_profiles_updated
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_student_updated on public.student_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_student_updated on public.student_profiles;
+create trigger trg_student_updated
+  before update on public.student_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_parent_updated on public.parent_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_parent_updated on public.parent_profiles;
+create trigger trg_parent_updated
+  before update on public.parent_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_teacher_updated on public.teacher_profiles
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_teacher_updated on public.teacher_profiles;
+create trigger trg_teacher_updated
+  before update on public.teacher_profiles
+  for each row execute function public.set_updated_at();
 
-create trigger trg_att_updated on public.attendance_records
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_att_updated on public.attendance_records;
+create trigger trg_att_updated
+  before update on public.attendance_records
+  for each row execute function public.set_updated_at();
 
-create trigger trg_leave_updated on public.leave_requests
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_leave_updated on public.leave_requests;
+create trigger trg_leave_updated
+  before update on public.leave_requests
+  for each row execute function public.set_updated_at();
 
-create trigger trg_lm_updated on public.learning_materials
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_lm_updated on public.learning_materials;
+create trigger trg_lm_updated
+  before update on public.learning_materials
+  for each row execute function public.set_updated_at();
 
-create trigger trg_asg_updated on public.assignments
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_asg_updated on public.assignments;
+create trigger trg_asg_updated
+  before update on public.assignments
+  for each row execute function public.set_updated_at();
 
-create trigger trg_gr_updated on public.grading_records
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_gr_updated on public.grading_records;
+create trigger trg_gr_updated
+  before update on public.grading_records
+  for each row execute function public.set_updated_at();
 
-create trigger trg_rc_updated on public.report_cards
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_rc_updated on public.report_cards;
+create trigger trg_rc_updated
+  before update on public.report_cards
+  for each row execute function public.set_updated_at();
 
-create trigger trg_exam_updated on public.exams
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_exam_updated on public.exams;
+create trigger trg_exam_updated
+  before update on public.exams
+  for each row execute function public.set_updated_at();
 
-create trigger trg_adm_updated on public.admissions
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_adm_updated on public.admissions;
+create trigger trg_adm_updated
+  before update on public.admissions
+  for each row execute function public.set_updated_at();
 
-create trigger trg_mabit_updated on public.mabit_events
-  before update for each row execute function public.set_updated_at();
+drop trigger if exists trg_mabit_updated on public.mabit_events;
+create trigger trg_mabit_updated
+  before update on public.mabit_events
+  for each row execute function public.set_updated_at();
 
 -- =============================== FUNCTIONS (RPC) ===============================
 create or replace function public.handle_new_user()

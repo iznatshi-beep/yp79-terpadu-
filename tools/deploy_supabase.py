@@ -96,12 +96,22 @@ def pilih_org(token: str) -> tuple[str, str]:
     if os.environ.get("ORG_ID"):
         return os.environ["ORG_ID"], "(dari ORG_ID)"
     code, res = api(token, "GET", "/organizations")
-    if code != 200 or not isinstance(res, list) or not res:
-        print(f"Gagal baca organisasi (HTTP {code}): {res}")
-        sys.exit(1)
-    for o in res:
-        print(f"  org: {o.get('name')}  id={o.get('id')}  plan={o.get('plan')}")
-    return res[0]["id"], res[0].get("name", "")
+    if code == 200 and isinstance(res, list) and res:
+        for o in res:
+            print(f"  org: {o.get('name')}  id={o.get('id')}  plan={o.get('plan')}")
+        return res[0]["id"], res[0].get("name", "")
+
+    # Token bertipe project-scope tidak boleh membaca /organizations.
+    # Ambil organization_id dari project yang sudah ada.
+    print(f"/organizations kosong (HTTP {code}) — fallback ke project yang ada.")
+    code2, projs = api(token, "GET", "/projects?limit=50")
+    if code2 == 200 and isinstance(projs, list) and projs:
+        p = projs[0]
+        print(f"  project terlihat: {p.get('ref')} ({p.get('name')})")
+        print(f"  organization_id : {p.get('organization_id')}")
+        return p["organization_id"], p.get("name", "")
+    print(f"Tidak bisa menentukan organisasi (HTTP {code2}): {projs}")
+    sys.exit(1)
 
 
 def bikin_project(token: str, org_id: str) -> str:
@@ -116,6 +126,17 @@ def bikin_project(token: str, org_id: str) -> str:
     code, res = api(token, "POST", "/projects", body)
     if code not in (200, 201):
         print(f"GAGAL membuat project (HTTP {code}): {res}")
+        pesan = json.dumps(res)
+        if code in (401, 403) or "scope" in pesan.lower() or "permission" in pesan.lower():
+            print()
+            print("Token ini tidak punya izin membuat project (scope-nya project-level).")
+            print("Opsi:")
+            print("  1. Bikin project manual di dashboard, lalu:")
+            print("     python tools/deploy_supabase.py --ref <ref-baru>")
+            print("  2. Pakai project yang sudah ada + wipe bersih:")
+            print("     python tools/deploy_supabase.py --ref kqkemiuqyfhqbwlgguqg --reset")
+            print("  3. Bikin token baru dengan scope Organization: All + Read/Write,")
+            print("     simpan lagi ke .secrets/sbp_token.txt")
         sys.exit(1)
     ref = res.get("id") or res.get("ref")
     DBPASS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -173,9 +194,18 @@ def ambil_key(token: str, ref: str) -> str:
         if "publishable" in name or "anon" in name:
             kandidat.append((name, val))
     if not kandidat:
-        print("Tidak menemukan publishable/anon key — ambil manual dari dashboard.")
-        sys.exit(1)
+        print("Tidak menemukan publishable/anon key lewat API (mungkin scope token terbatas).")
+        return ""
     return kandidat[0][1]
+
+
+def ambil_key_dari_env() -> str:
+    if not ENV_FILE.exists():
+        return ""
+    for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("SUPABASE_ANON_KEY="):
+            return line.split("=", 1)[1].strip()
+    return ""
 
 
 def tulis_env(url: str, key: str) -> None:
@@ -243,6 +273,13 @@ def main() -> int:
 
     url = f"https://{ref}.supabase.co"
     key = ambil_key(token, ref)
+    if not key:
+        key = ambil_key_dari_env()
+        if key:
+            print("  Memakai publishable key yang sudah ada di .env.")
+    if not key:
+        print("Publishable key tidak bisa diambil otomatis — isi .env manual lalu jalankan verify.")
+        return 1
     tulis_env(url, key)
 
     if not args.skip_gh:
