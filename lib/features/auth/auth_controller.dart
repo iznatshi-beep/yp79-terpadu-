@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/config.dart';
@@ -9,9 +11,14 @@ import '../login/login_page.dart';
 
 /// Gate utama: tampilkan login atau dashboard beranda sesuai status auth.
 ///
-/// Stream dibuat SEKALI di initState, bukan di dalam build(). Sebelumnya root
-/// app memakai `AuthBootstrapPage` yang hanya membaca session satu kali,
-/// sehingga login berhasil tetapi layar tidak pernah berpindah ke dashboard.
+/// Kenapa tidak hanya bergantung pada `onAuthStateChange`: event pertama
+/// (`initialSession`) baru dipancarkan SETELAH pemulihan sesi di dalam
+/// `Supabase.initialize()` selesai. Kalau pemulihan itu gagal (mis. perangkat
+/// gagal membaca sesi tersimpan), stream tidak pernah memancarkan apa pun —
+/// tidak ada data dan tidak ada error — sehingga layar "Memuat data sesi..."
+/// berputar tanpa akhir. Sekarang gerbang memakai DUA jalur: dengarkan
+/// perubahan sesi (untuk login/logout) DAN baca sesi sekali langsung dengan
+/// batas waktu.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -20,14 +27,77 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  Stream<SessionProfile?>? _stream;
+  StreamSubscription<SessionProfile?>? _langganan;
+  SessionProfile? _profil;
+  String? _error;
+  bool _siap = false;
 
   @override
   void initState() {
     super.initState();
-    if (AppConfig.isConfigured) {
-      _stream = AuthService.sessionStream();
+    if (AppConfig.isConfigured) _mulai();
+  }
+
+  @override
+  void dispose() {
+    _langganan?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _mulai() async {
+    if (mounted) {
+      setState(() {
+        _siap = false;
+        _error = null;
+      });
     }
+
+    // Jalur 1: perubahan sesi (login, logout, refresh token).
+    try {
+      await _langganan?.cancel();
+      _langganan = AuthService.sessionStream().listen(
+        (profil) {
+          if (!mounted) return;
+          setState(() {
+            _profil = profil;
+            _siap = true;
+            _error = null;
+          });
+        },
+        onError: (Object e) {
+          if (!mounted) return;
+          setState(() => _error = _pesan(e));
+        },
+      );
+    } catch (e) {
+      if (mounted) setState(() => _error = _pesan(e));
+    }
+
+    // Jalur 2: pembacaan langsung. Inilah yang menjamin layar tidak pernah
+    // berputar selamanya walau jalur 1 bisu.
+    try {
+      final profil = await AuthService.currentProfile()
+          .timeout(const Duration(seconds: 12));
+      if (!mounted) return;
+      setState(() {
+        _profil = profil;
+        _siap = true;
+        _error = null;
+      });
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() => _error = 'Server tidak merespons dalam 12 detik. '
+          'Periksa koneksi internet lalu tekan Coba lagi.');
+    } catch (e) {
+      if (mounted) setState(() => _error = _pesan(e));
+    }
+  }
+
+  /// Sertakan sebab kegagalan startup kalau ada, supaya pesannya bisa
+  /// ditindaklanjuti (bukan cuma "terjadi kesalahan").
+  String _pesan(Object e) {
+    final awal = AppConfig.lastInitError;
+    return awal == null ? '$e' : 'Supabase gagal disiapkan: $awal';
   }
 
   @override
@@ -35,22 +105,17 @@ class _AuthGateState extends State<AuthGate> {
     if (!AppConfig.isConfigured) {
       return const _NoBackendGate();
     }
-    return StreamBuilder<SessionProfile?>(
-      stream: _stream,
-      builder: (context, snap) {
-        if (snap.hasError) {
-          return _AuthErrorScreen(message: '${snap.error}');
-        }
-        if (!snap.hasData) {
-          return const _SplashScreen();
-        }
-        final profile = snap.data;
-        if (profile == null) {
-          return const LoginPage();
-        }
-        return BerandaPage(profile: profile);
-      },
-    );
+    if (_error != null) {
+      return _AuthErrorScreen(message: _error!, onRetry: _mulai);
+    }
+    if (!_siap) {
+      return const _SplashScreen();
+    }
+    final profil = _profil;
+    if (profil == null) {
+      return const LoginPage();
+    }
+    return BerandaPage(profile: profil);
   }
 }
 
@@ -114,8 +179,9 @@ class _SplashScreen extends StatelessWidget {
 }
 
 class _AuthErrorScreen extends StatelessWidget {
-  const _AuthErrorScreen({required this.message});
+  const _AuthErrorScreen({required this.message, this.onRetry});
   final String message;
+  final Future<void> Function()? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +209,14 @@ class _AuthErrorScreen extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12.5, color: AppColors.textSecondary),
               ),
+              if (onRetry != null) ...[
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: () => onRetry!(),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Coba lagi'),
+                ),
+              ],
             ],
           ),
         ),

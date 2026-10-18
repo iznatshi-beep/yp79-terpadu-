@@ -20,6 +20,11 @@ void main() {
     expect(AppConfig.isConfigured, isFalse,
         reason: 'Test ini berjalan tanpa .env / --dart-define.');
 
+    // Regresi: gerbang TIDAK boleh berhenti di splash "Memuat data sesi..."
+    // (bug lapangan: berputar tanpa akhir karena event sesi pertama tidak
+    // pernah datang). Tanpa backend, layar login harus langsung tampil.
+    expect(find.text('Memuat data sesi...'), findsNothing);
+
     expect(find.text('Backend belum terhubung'), findsOneWidget);
     expect(find.text('YP79 Terpadu'), findsOneWidget);
 

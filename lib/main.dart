@@ -36,9 +36,24 @@ Future<void> main() async {
       await Supabase.initialize(
         url: AppConfig.supabaseUrl,
         anonKey: AppConfig.supabaseAnonKey,
-      );
-    } catch (e) {
+        // Batas waktu: tanpa ini, backend yang tidak merespons membuat
+        // runApp() tidak pernah dipanggil (layar hitam tanpa penjelasan).
+      ).timeout(const Duration(seconds: 15));
+    } catch (e, st) {
+      // Simpan sebabnya: gerbang sesi menampilkannya ke pengguna dan
+      // Crashlytics mencatatnya (non-fatal) supaya bisa diperiksa dari jauh.
+      AppConfig.lastInitError = '$e';
       debugPrint('Gagal inisialisasi Supabase: $e');
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'Supabase.initialize gagal',
+          fatal: false,
+        );
+      } catch (_) {
+        // Crashlytics belum siap / tidak tersedia: abaikan.
+      }
     }
   } else {
     debugPrint(
