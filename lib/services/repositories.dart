@@ -1,5 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase/supabase.dart';
-import 'package:supabase_flutter/supabase.dart';
 
 /// Tipe record generik untuk data Supabase.
 typedef RowData = Map<String, dynamic>;
@@ -16,17 +16,23 @@ class QueryResult<T> {
 }
 
 /// Helper untuk membangun filter Supabase yang konsisten.
-PostgrestFilterBuilder<List<Map<String, dynamic>>> _filter(
+/// Kembalikan `dynamic` karena chain `.order()`/`.limit()` mengubah tipe
+/// builder menjadi PostgrestTransformBuilder, dan kita hanya memakai filter.
+dynamic _filter(
   String table, {
   String select = '*',
   String? orderCol,
   bool ascending = true,
   int? limit,
 }) {
-  var b = Supabase.instance.client.from(table).select(select);
-  if (orderCol != null) b = b.order(orderCol, ascending: ascending);
-  if (limit != null) b = b.limit(limit);
-  return b;
+  var q = Supabase.instance.client.from(table).select(select);
+  if (orderCol != null) {
+    q = q.order(orderCol, ascending: ascending);
+  }
+  if (limit != null) {
+    q = q.limit(limit);
+  }
+  return q;
 }
 
 /// Repositori terpusat seluruh modul.

@@ -246,7 +246,7 @@ create table if not exists public.assignment_submissions (
   keteterlambatan boolean not null default false,
   nilai numeric(5,2),
   umpan_balik text,
-  status public.assignment_status not null default 'ditempat',
+  status public.assignment_status not null default 'draft',
   created_at timestamptz not null default now(),
   unique (assignment_id, student_user_id)
 );

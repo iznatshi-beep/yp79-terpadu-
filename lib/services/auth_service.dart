@@ -1,5 +1,5 @@
-import 'package:supabase/supabase.dart';
-import 'package:supabase_flutter/supabase.dart' show Supabase;
+import 'package:gotrue/gotrue.dart' show AuthChangeEvent, AuthStateChange, Session;
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../core/models/role.dart';
 import '../core/models/session_profile.dart';
@@ -29,7 +29,7 @@ class AuthService {
     }).asBroadcastStream();
   }
 
-  static Future<SessionProfile> _toProfile(AuthSession session) async {
+  static Future<SessionProfile> _toProfile(Session session) async {
     final user = session.user;
     final roleRaw = user.appMetadata?['role'] as String? ??
         user.userMetadata?['role'] as String?;
