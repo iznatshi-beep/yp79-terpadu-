@@ -126,6 +126,34 @@ ter-build tetapi berjalan tanpa backend dan mencetak peringatan di log CI.
 
 ## 8. Status Integrasi Eksternal
 
+### Firebase / Google Sign-In — fingerprint SHA
+
+Firebase memakai SHA-1 (+ SHA-256) dari **sertifikat penanda tangan APK**. Kalau
+SHA-nya berubah, Google Sign-In dan Firebase Analytics/Crashlytics menolak app.
+
+APK harus selalu ditandatangani dengan **satu keystore rilis tetap**. Sejak
+18 Okt 2026 CI memakai keystore rilis yang disimpan sebagai GitHub Secret, jadi
+SHA-nya **stabil untuk setiap update**:
+
+```
+package name : com.yp79terpadu.app
+SHA-1        : EB:87:FD:8C:13:D8:CC:81:DA:D0:7E:35:7C:D0:3F:75:60:F2:A6:09
+SHA-256      : 1F:E0:2D:E0:B4:CA:77:BE:75:7F:F4:B6:81:74:A9:59:BF:0C:C3:04:5D:9E:20:48:33:B9:3D:15:84:3F:DB:2F
+```
+
+Daftarkan **kedua** fingerprint di Firebase → Project Settings → Your apps →
+Android app → Add fingerprint, lalu **unduh ulang `google-services.json`** dan
+timpa `android/app/google-services.json` (file lama masih punya
+`"oauth_client": []` sehingga Google Sign-In tidak mungkin jalan).
+
+Fingerprint debug lokal (untuk `flutter run` di PC, opsional):
+`70:29:7A:88:5C:65:1E:29:50:14:C9:B2:B5:4A:05:78:35:53:BF:58`
+
+Cara memeriksa SHA dari APK mana pun (tanpa JDK):
+`python tools/apk_signer.py <file.apk>`
+
+### Modul lain
+
 | Modul | Status | Keterangan |
 |---|---|---|
 | QR Presensi | Siap | Gunakan `generate_attendance_qr` RPC. Token sekali pakai, hash disimpan server. |
