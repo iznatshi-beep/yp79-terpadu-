@@ -1,5 +1,8 @@
-import 'package:gotrue/gotrue.dart' show AuthChangeEvent, AuthStateChange, Session;
-import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
+// Impor dari supabase_flutter, bukan package:gotrue. `gotrue` bukan dependency
+// langsung di pubspec dan `AuthStateChange` sudah tidak ada di gotrue 2.27
+// (analyzer: undefined_shown_name) sehingga impor lama rapuh terhadap upgrade.
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthChangeEvent, Session, Supabase;
 
 import '../core/models/role.dart';
 import '../core/models/session_profile.dart';
@@ -31,7 +34,7 @@ class AuthService {
 
   static Future<SessionProfile> _toProfile(Session session) async {
     final user = session.user;
-    final roleRaw = user.appMetadata?['role'] as String? ??
+    final roleRaw = user.appMetadata['role'] as String? ??
         user.userMetadata?['role'] as String?;
     final name = user.userMetadata?['nama'] as String? ?? user.email;
     final role = Role.fromString(roleRaw);
