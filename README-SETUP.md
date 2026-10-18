@@ -18,21 +18,31 @@ yp79-terpadu/
 ## 2. Menjalankan Migrasi Database
 
 1. Buka project Supabase Anda: `https://supabase.com/dashboard`
-2. Masuk project `yukqngrtgevveimhrwke` (atau project YP79).
+2. Masuk project `kqkemiuqyfhqbwlgguqg` (project YP79 yang sudah live), atau project baru buatan Anda.
 3. Buka **SQL Editor** → **New query**.
-4. Copy-paste seluruh isi `supabase/migrations/0001_schema.sql` → Run.
+4. Copy-paste seluruh isi `0001_schema.sql` → Run.
 5. Ulangi untuk `0002_rls_functions.sql`.
 6. Ulangi untuk `0003_seed.sql`.
-7. Ulangi untuk `0004_fixes.sql` — perbaikan hasil audit: unique constraint presensi
-   (tanpa ini penyimpanan presensi gagal), perbaikan seed tahun ajaran semester genap,
-   foreign key `student_profiles.kelas_id`, index tambahan.
-8. Ulangi untuk `0005_cbt_dan_akses.sql` — perbaikan hasil audit: perhitungan nilai
-   CBT yang benar, RPC soal tanpa kunci jawaban, policy kategori biaya untuk
-   orang tua/siswa.
+7. Ulangi untuk `0004_fixes.sql` — unique constraint presensi (tanpa ini penyimpanan
+   presensi gagal), perbaikan seed tahun ajaran semester genap, foreign key kelas.
+8. Ulangi untuk `0005_cbt_dan_akses.sql` — perhitungan nilai CBT yang benar, RPC soal
+   tanpa kunci jawaban, policy kategori biaya untuk orang tua/siswa.
+9. Ulangi untuk `0006_aksi_dan_audit.sql` — policy guru untuk upsert presensi,
+   trigger audit log otomatis pada 10 tabel sensitif.
+10. Ulangi untuk `0007_chat_rls_fix.sql` — perbaikan RLS chat yang rekursi
+    (`42P17 infinite recursion`), ekstensi pgcrypto untuk presensi QR.
 
-> **Penting (audit 18 Okt 2026)**: URL Supabase yang lama
-> (`yukqngrtgevveimhrwke.supabase.co`) sudah **tidak ada** (DNS: non-existent
-> domain). Buat project Supabase baru, lalu pakai URL project tersebut.
+**Cara lebih cepat:** pakai `supabase/migrations/ALL_IN_ONE.sql` (semua 7 migrasi
+digabung berurutan) — cukup sekali paste lalu Run.
+
+> **Status 18 Okt 2026**: backend YP79 sudah LIVE di project
+> `kqkemiuqyfhqbwlgguqg` — hasil verifikasi: **59/59 tabel OK**, 235 policy RLS,
+> 19 fungsi, seed lengkap. Kalau membuat project baru, jalankan migrasi di atas
+> dari nol; kalau memakai project lama, jalankan `RESET_DESTRUCTIVE.sql` dulu
+> (perintah lengkap ada di `docs/AUDIT.md` §3A).
+>
+> **Catatan**: URL Supabase lama (`yukqngrtgevveimhrwke.supabase.co`) sudah
+> **tidak ada** (DNS: non-existent domain).
 
 Semua tabel, RLS policies, dan functions harus sukses. Jika ada error, selesaikan terlebih dahulu sebelum lanjut.
 
@@ -43,9 +53,13 @@ Semua tabel, RLS policies, dan functions harus sukses. Jika ada error, selesaika
 Buat file `.env` di root `yp79-terpadu/` (sudah di-gitignore otomatis oleh .gitignore Flutter):
 
 ```
-SUPABASE_URL=https://<project-ref-baru>.supabase.co
+SUPABASE_URL=https://kqkemiuqyfhqbwlgguqg.supabase.co
 SUPABASE_ANON_KEY=<publishable/anon key dari Supabase Dashboard → Project Settings → API>
 ```
+
+CI APK menyuntikkan kedua nilai itu lewat `--dart-define` dari GitHub Secrets
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY`) — sudah terisi untuk repo ini, jadi APK
+hasil build langsung tersambung ke database.
 
 **Anon key** di-copy dari Supabase Dashboard, **bukan** access token `sbp_`. Access token bersifat per-project dan tidak boleh dipakai sebagai anon key.
 

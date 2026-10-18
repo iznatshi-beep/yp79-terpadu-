@@ -14,20 +14,50 @@ apa yang **sudah diperbaiki**, dan apa yang **belum selesai** beserta alasan seb
 
 | Item | Kondisi sebelum audit | Kondisi setelah perbaikan |
 |---|---|---|
-| Build APK di CI | **GAGAL 7x berturut-turut** (app belum pernah ter-build) | **HIJAU** (run `39131499220`, artifact `yp79-terpadu-apk` 78 MB) |
-| Backend/database | URL Supabase di konfigurasi **tidak ada** (DNS: Non-existent domain) | masih sama — **butuh project Supabase baru** (lihat §7) |
+| Build APK di CI | **GAGAL 7x berturut-turut** (app belum pernah ter-build) | **HIJAU** (run `39131499220` dst, artifact `yp79-terpadu-apk` 78 MB) |
+| Backend/database | URL Supabase di konfigurasi **tidak ada** (DNS: Non-existent domain) | **LIVE** — 59 tabel, 235 policy, 19 fungsi, seed lengkap (§3A) |
 | Login | Tidak akan pernah berpindah ke dashboard walau berhasil | diperbaiki (AuthGate mendengarkan perubahan sesi) |
-| APK release | **Tanpa izin INTERNET** → tidak bisa akses jaringan | diperbaiki |
+| APK release | **Tanpa izin INTERNET** → tidak bisa akses jaringan | diperbaiki + backend ter-bake via `--dart-define` |
 | Kunci jawaban CBT | **Terkirim ke perangkat siswa** | ditutup (RPC tanpa kolom kunci) |
 | Penilaian CBT | **Semua siswa dapat nilai penuh** (fungsi SQL salah) | diperbaiki (`0005_cbt_dan_akses.sql`) |
 | Keystore signing | **Ke-push ke repo PUBLIC** | dihapus dari tracking — **WAJIB rotasi** |
-| Modul yang benar-benar berfungsi | sebagian besar hanya **baca/tampil** | CBT kini berfungsi penuh (satu-satunya alur tulis end-to-end) |
+| Modul yang benar-benar berfungsi | sebagian besar hanya **baca/tampil** | CBT + presensi + nilai + izin kini tulis end-to-end |
+| Migrasi SQL | **Tidak pernah berhasil dijalankan sama sekali** (6 bug sintaks/logika) | **Berhasil 100%**, terverifikasi 59/59 tabel (§3A) |
 
 Kesimpulan singkat: aplikasi ini sebelumnya **tidak pernah bisa di-build** dan
-**tidak terhubung ke database mana pun**. Setelah audit ini aplikasi
-**bisa di-build menjadi APK**, tetapi **belum bisa dipakai operasional** karena
-(a) belum ada project Supabase yang hidup, (b) sebagian besar modul belum
-memiliki UI untuk menulis data. Rincian ada di §5 dan §6.
+**tidak terhubung ke database mana pun**. Setelah audit ini: aplikasi
+**ter-build menjadi APK**, **backend hidup dan terverifikasi**, dan empat alur
+tulis (CBT, presensi, nilai, izin) sudah tersambung. Sisa pekerjaan ada di §8.
+
+---
+
+## 3A. STATUS DEPLOY BACKEND (terverifikasi dari server, 18 Okt 2026)
+
+Project: `kqkemiuqyfhqbwlgguqg` (region ap-south-1, PostgreSQL 17.11, ACTIVE_HEALTHY)
+
+```
+Hasil tools/verify_supabase.py      : OK 59/59 tabel · MISSING 0 · ERROR 0
+Hasil query langsung ke database    :
+  jumlah_tabel     : 59
+  jumlah_policy    : 235        (RLS aktif di seluruh tabel)
+  jumlah_fungsi    : 19
+  jumlah_enum      : 17
+  trigger          : 32
+  seed subjects    : 8
+  seed tahun_ajaran: 2          (gasal + genap)
+  seed kategori    : 4          (SPP, Gedung, Kegiatan, Lainnya)
+  school_settings  : 4
+  profiles         : 0          <- akun admin pertama BELUM dibuat (tugas Anda)
+```
+
+Project ini sebelumnya milik aplikasi lama. Sebelum migrasi dijalankan,
+schema `public` dikosongkan (isi lamanya hanya 22 baris data master:
+`pembiayaan_jenis` 20, `school_settings` 1, `integration_settings` 1 — tidak ada
+data siswa/nilai/keuangan). User di `auth.users` tidak dihapus.
+
+APK hasil CI sudah membawa `SUPABASE_URL` + kunci publik lewat `--dart-define`
+(log CI: "Backend dikonfigurasi lewat --dart-define"), jadi APK langsung
+tersambung ke database di atas.
 
 ---
 
@@ -353,11 +383,31 @@ lebih dulu, dan itu menghapus seluruh data aplikasi lama.
 |---|---|---|---|
 | Publishable / anon | `sb_publishable_...`, `eyJ...` | **YA** (memang publik, dilindungi RLS) | aplikasi Flutter, CI `--dart-define` |
 | Secret / service_role | `sb_secret_...` | **TIDAK PERNAH** | hanya server (Edge Function), bypass semua RLS |
-| Personal access token | `sbp_...` | **TIDAK PERNAH** | Supabase Management API (bikin/hapus project) |
+| Personal access token | `sbp_...` | **TIDAK PERNAH** | Supabase Management API (bikin/hapus project, jalankan SQL) |
 
 Kunci `sb_secret_...` yang pernah dikirim lewat chat **harus dianggap bocor** dan
 di-rotasi di Dashboard → Project Settings → API Keys. Aplikasi ini tidak
 membutuhkannya sama sekali.
+
+---
+
+### K13–K18 — Bug migrasi SQL yang BARU ketahuan saat SQL-nya benar-benar dijalankan
+
+Enam bug ini tidak mungkin ditemukan dengan membaca kode saja; semuanya muncul
+sebagai error asli dari PostgreSQL pada percobaan deploy pertama. Artinya:
+**skema 2.300 baris ini belum pernah berhasil dijalankan sama sekali sebelum audit.**
+
+| # | File | Error asli dari PostgreSQL | Penyebab & perbaikan |
+|---|---|---|---|
+| K13 | `0001` | `42601 syntax error at or near "type"` (baris 7) | `create or replace type` **bukan sintaks PostgreSQL** (itu Oracle). 17 enum kini dibuat lewat `DO $$ ... exception when duplicate_object $$` |
+| K14 | `0002` | `42601 syntax error at or near "on"` (13 trigger) | Ditulis `create trigger <nama> on <tabel> before update ...` — PostgreSQL mewajibkan `BEFORE/AFTER` **mendahului** `ON`. Urutan dibetulkan + `drop trigger if exists` |
+| K15 | `0002` | `42703 column "verified_by" does not exist` | Policy `mutabaah_update` memakai `verified_by`, kolom sebenarnya `diverifikasi_oleh` |
+| K16 | `0002` | `42883 operator does not exist: notification_target = text` | Policy `ann_read` membandingkan kolom enum dengan hasil `role::text` tanpa cast → ditambah `target_penerbitan::text` |
+| K17 | `0002` | `42P17 infinite recursion detected in policy for relation "chat_conversations"` | `conv_read` (chat_conversations) membaca `conversation_members`, sedangkan `conv_member_read` membaca `chat_conversations` → siklus. **Chat tidak bisa dibaca sama sekali.** Dipecah di `0007` lewat fungsi `SECURITY DEFINER` `is_conversation_member` / `is_conversation_owner` |
+| K18 | `0002` | `function digest(text, unknown) does not exist` (saat dipanggil) | Presensi QR memakai `digest()` (sha256) tetapi ekstensi **pgcrypto tidak pernah dibuat** dan `search_path` fungsi tidak diatur → `0007` menambah ekstensi + `alter function ... set search_path` |
+
+Catatan penting: K17 dan K18 juga ada di project lama (`42P17` untuk chat) —
+jadi bug ini memang bagian dari skema yang diwarisi, bukan akibat perubahan kita.
 
 ---
 
