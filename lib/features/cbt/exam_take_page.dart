@@ -235,7 +235,7 @@ class _ExamTakePageState extends State<ExamTakePage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       itemCount: _questions.length,
       itemBuilder: (context, i) {
         final q = _questions[i];
@@ -245,7 +245,7 @@ class _ExamTakePageState extends State<ExamTakePage> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

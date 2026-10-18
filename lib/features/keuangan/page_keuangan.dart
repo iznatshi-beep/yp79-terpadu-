@@ -14,7 +14,7 @@ class PageKeuangan extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.all(14),
+          padding: EdgeInsets.all(18),
           child: Text(
             'Pembiayaan Sekolah',
             style: TextStyle(
@@ -51,7 +51,7 @@ class PageKeuangan extends StatelessWidget {
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: cats.length,
               itemBuilder: (context, i) {
                 final c = cats[i];

@@ -43,23 +43,23 @@ class ModulAksiGrid extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                boxShadow: appSoftShadow,
               ),
               padding: const EdgeInsets.all(10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: (a.color ?? AppColors.primary)
-                          .withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                          .withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(AppRadius.tile),
                     ),
                     child: Icon(a.icon,
-                        size: 20, color: a.color ?? AppColors.primary),
+                        size: 22, color: a.color ?? AppColors.primary),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -69,8 +69,8 @@ class ModulAksiGrid extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
                     ),
                   ),
                 ],

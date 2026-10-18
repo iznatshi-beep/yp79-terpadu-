@@ -20,7 +20,7 @@ class _PageChatState extends State<PageChat> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               _TabPill(
@@ -100,7 +100,7 @@ class _AnnouncementList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: anns.length,
           itemBuilder: (context, i) {
             final a = anns[i];
@@ -160,7 +160,7 @@ class _ChatList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: convs.length,
           itemBuilder: (context, i) {
             final c = convs[i];

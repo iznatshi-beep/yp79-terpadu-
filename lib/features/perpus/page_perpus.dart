@@ -21,7 +21,7 @@ class _PagePerpusState extends State<PagePerpus> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               _TabPill(
@@ -103,7 +103,7 @@ class _KatalogBuku extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: books.length,
           itemBuilder: (context, i) {
             final b = books[i];
@@ -174,7 +174,7 @@ class _EBookList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: items.length,
           itemBuilder: (context, i) {
             final d = items[i];

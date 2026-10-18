@@ -32,7 +32,7 @@ class AdminDashboard extends StatelessWidget {
             }
             final stats = snap.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -91,7 +91,7 @@ class AdminDashboard extends StatelessWidget {
             }
             final ann = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -126,7 +126,7 @@ class AdminDashboard extends StatelessWidget {
             }
             final notifs = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -205,16 +205,14 @@ class _AnnouncementTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarurat = prioritas == 'darurat';
     final isPenting = prioritas == 'penting';
-    final accent =
-        isDarurat ? AppColors.danger : (isPenting ? AppColors.warning : AppColors.primary);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: accent.withValues(alpha: 0.3)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -282,8 +280,8 @@ class _NotificationTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          boxShadow: appSoftShadow,
         ),
         padding: const EdgeInsets.all(12),
         child: Row(

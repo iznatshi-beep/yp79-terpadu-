@@ -26,7 +26,7 @@ class _CbtPageState extends State<CbtPage> {
       padding: EdgeInsets.zero,
       children: [
         const Padding(
-          padding: EdgeInsets.all(14),
+          padding: EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -57,7 +57,7 @@ class _CbtPageState extends State<CbtPage> {
             }
             if (snap.data?.error != null) {
               return Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(18),
                 child: ErrorState(message: snap.data!.error!),
               );
             }
@@ -72,7 +72,7 @@ class _CbtPageState extends State<CbtPage> {
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: exams.length,
               itemBuilder: (context, i) {
                 final e = exams[i];
@@ -110,7 +110,7 @@ class _CbtPageState extends State<CbtPage> {
         ),
         const SizedBox(height: 10),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
+          padding: EdgeInsets.symmetric(horizontal: 18),
           child: SectionHeader(title: 'Hasil Ujian'),
         ),
         FutureBuilder<QueryResult<RowData>>(
@@ -119,14 +119,14 @@ class _CbtPageState extends State<CbtPage> {
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
-                padding: EdgeInsets.all(14),
+                padding: EdgeInsets.all(18),
                 child: SkeletonRow(),
               );
             }
             final attempts = snap.data?.data ?? const <RowData>[];
             if (attempts.isEmpty) {
               return const Padding(
-                padding: EdgeInsets.all(14),
+                padding: EdgeInsets.all(18),
                 child: EmptyState(
                   title: 'Belum ada hasil ujian',
                   message: 'Hasil CBT akan tampil di sini.',
@@ -137,7 +137,7 @@ class _CbtPageState extends State<CbtPage> {
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: attempts.length,
               itemBuilder: (context, i) {
                 final a = attempts[i];
@@ -246,7 +246,7 @@ class _ExamDetailPageState extends State<_ExamDetailPage> {
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
             itemCount: qs.length + 1,
             itemBuilder: (context, i) {
               if (i == 0) {
@@ -273,7 +273,7 @@ class _ExamDetailPageState extends State<_ExamDetailPage> {
               final q = qs[i - 1];
               return Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

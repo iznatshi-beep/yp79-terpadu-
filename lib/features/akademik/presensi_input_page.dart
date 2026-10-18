@@ -210,7 +210,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
             child: Row(
               children: [
                 Expanded(
@@ -233,7 +233,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
           ),
           if (_pesan != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Text(
                 _pesan!,
                 style: const TextStyle(
@@ -242,7 +242,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
             ),
           if (_kelas.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               child: DropdownButtonFormField<String>(
                 initialValue: _kelasDipilih?['id']?.toString(),
                 decoration: const InputDecoration(labelText: 'Kelas'),
@@ -269,7 +269,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
           ? null
           : SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                 child: FilledButton.icon(
                   onPressed: _menyimpan ? null : _simpan,
                   icon: _menyimpan
@@ -312,7 +312,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
       itemCount: _siswa.length,
       itemBuilder: (context, i) {
         final s = _siswa[i];
@@ -323,8 +323,8 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: appSoftShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

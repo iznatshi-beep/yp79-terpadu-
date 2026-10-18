@@ -239,17 +239,33 @@ class _ShellPageState extends State<ShellPage> {
         ],
       ),
       body: tab.builder(profile: widget.profile),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: [
-          for (final t in tabs)
-            NavigationDestination(
-              icon: Icon(t.icon),
-              selectedIcon: Icon(t.icon, size: 22),
-              label: t.label,
-            ),
-        ],
+      // Navigasi bawah ala showcase: putih, sudut atas 24, label tampil.
+      // Bila tab > 5 (mis. admin 8 tab), label hanya muncul pada tab terpilih
+      // agar tidak berdesakan — showcase-nya sendiri hanya 5 slot.
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: appSoftShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: NavigationBar(
+            selectedIndex: _tab,
+            labelBehavior: tabs.length > 5
+                ? NavigationDestinationLabelBehavior.onlyShowSelected
+                : NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: (i) => setState(() => _tab = i),
+            destinations: [
+              for (final t in tabs)
+                NavigationDestination(
+                  icon: Icon(t.icon),
+                  selectedIcon: Icon(t.icon, size: 22),
+                  label: t.label,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

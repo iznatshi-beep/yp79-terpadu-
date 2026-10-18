@@ -21,7 +21,7 @@ class _LmsPageState extends State<LmsPage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               _TabPill(
@@ -114,7 +114,7 @@ class _MateriList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: mats.length,
           itemBuilder: (context, i) {
             final m = mats[i];
@@ -195,7 +195,7 @@ class _TugasList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: asgs.length,
           itemBuilder: (context, i) {
             final a = asgs[i];
@@ -255,7 +255,7 @@ class _PengumpulanList extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: subs.length,
           itemBuilder: (context, i) {
             final s = subs[i];

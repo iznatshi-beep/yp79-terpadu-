@@ -906,6 +906,79 @@ class Repos {
 
   // ---------- CHAT ----------
 
+  /// Daftar guru (hanya id + nama) lewat RPC — orang tua/siswa tidak punya
+  /// izin membaca `teacher_profiles` secara langsung, dan nomor HP tidak boleh
+  /// ikut terkirim.
+  static Future<QueryResult<RowData>> listGuru() async {
+    try {
+      final rows = await db.rpc('list_guru');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Buat (atau ambil) percakapan dengan seorang guru. Dibuat di server supaya
+  /// percakapan + keanggotaan tercatat dalam satu transaksi.
+  static Future<String?> startConversation(String guruId) async {
+    try {
+      final res = await db.rpc(
+        'start_conversation',
+        params: {'p_guru': guruId},
+      );
+      return res?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Nama peserta tiap percakapan (untuk judul daftar chat).
+  static Future<QueryResult<RowData>> conversationPeers() async {
+    try {
+      final rows = await db.rpc('conversation_peers');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  // ---------- AUDIT LOG (admin) ----------
+
+  static Future<QueryResult<RowData>> auditLogs({int limit = 200}) async {
+    try {
+      final rows = await db
+          .from('audit_logs')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Nama pemilik akun untuk daftar audit log (admin berhak membaca profiles).
+  static Future<QueryResult<RowData>> profilesByIds(List<String> ids) async {
+    if (ids.isEmpty) return const QueryResult<RowData>(data: []);
+    try {
+      final rows = await db
+          .from('profiles')
+          .select('id, nama, role')
+          .inFilter('id', ids);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
   static Future<QueryResult<RowData>> conversations() async {
     try {
       final rows = await db

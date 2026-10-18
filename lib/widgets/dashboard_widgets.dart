@@ -23,11 +23,11 @@ class DashboardStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -39,19 +39,19 @@ class DashboardStatCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: AppColors.muted,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               Container(
-                width: 30,
-                height: 30,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                 ),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 18, color: color),
               ),
             ],
           ),
@@ -59,10 +59,10 @@ class DashboardStatCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.4,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+              letterSpacing: -0.5,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -70,8 +70,7 @@ class DashboardStatCard extends StatelessWidget {
           if (subtitle != null)
             Text(
               subtitle!,
-              style: const TextStyle(
-                  fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 11, color: AppColors.muted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -96,9 +95,10 @@ class SectionHeader extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+              letterSpacing: -0.2,
             ),
           ),
           const Spacer(),
@@ -119,9 +119,8 @@ class BackendBanner extends StatelessWidget {
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        color: AppColors.warningBg,
+        borderRadius: BorderRadius.circular(AppRadius.btn),
       ),
       child: Row(
         children: [
@@ -131,8 +130,7 @@ class BackendBanner extends StatelessWidget {
           Expanded(
             child: Text(
               'Data belum tersedia. Sambungkan backend Supabase untuk memuat data nyata.',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF9A3412)),
             ),
           ),
         ],

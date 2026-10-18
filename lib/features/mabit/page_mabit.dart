@@ -14,7 +14,7 @@ class PageMabit extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         const Padding(
-          padding: EdgeInsets.all(14),
+          padding: EdgeInsets.all(18),
           child: Text(
             'MABIT — Malam Bina Iman dan Takwa',
             style: TextStyle(
@@ -43,7 +43,7 @@ class PageMabit extends StatelessWidget {
             return ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               itemCount: events.length,
               itemBuilder: (context, i) {
                 final e = events[i];
@@ -57,7 +57,7 @@ class PageMabit extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

@@ -40,11 +40,11 @@ class AppStates {
   static Widget backendUnavailable({String? detail}) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(AppRadius.btn),
+        
       ),
       child: Row(
         children: [
@@ -88,11 +88,11 @@ class AppStatesBackendUnavailableBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(AppRadius.btn),
+        
       ),
       child: Row(
         children: [
@@ -338,9 +338,9 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -354,17 +354,17 @@ class StatCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: AppColors.muted,
                 ),
               ),
               Container(
-                width: 32,
-                height: 32,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: 21, color: color),
               ),
             ],
           ),
@@ -372,10 +372,10 @@ class StatCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+              letterSpacing: -0.6,
             ),
           ),
           if (trend != null) ...[
@@ -406,29 +406,14 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (state) {
-      BadgeState.success => (
-          AppColors.success.withValues(alpha: 0.14),
-          AppColors.success
-        ),
-      BadgeState.warning => (
-          AppColors.warning.withValues(alpha: 0.16),
-          AppColors.warning
-        ),
-      BadgeState.danger => (
-          AppColors.danger.withValues(alpha: 0.12),
-          AppColors.danger
-        ),
-      BadgeState.info => (
-          AppColors.primary.withValues(alpha: 0.12),
-          AppColors.primary
-        ),
-      BadgeState.neutral => (
-          AppColors.border,
-          AppColors.textSecondary
-        ),
+      BadgeState.success => (AppColors.successBg, AppColors.success),
+      BadgeState.warning => (AppColors.warningBg, const Color(0xFFC2410C)),
+      BadgeState.danger => (AppColors.dangerBg, AppColors.danger),
+      BadgeState.info => (AppColors.infoBg, AppColors.primary),
+      BadgeState.neutral => (AppColors.line, AppColors.muted),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),

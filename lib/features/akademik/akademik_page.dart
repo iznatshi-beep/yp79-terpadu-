@@ -23,7 +23,7 @@ class _AkademikPageState extends State<AkademikPage> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
             child: const TabBar(
               isScrollable: true,
               tabs: [
@@ -73,7 +73,7 @@ class _KelasTab extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: classes.length,
           itemBuilder: (context, i) {
             final c = classes[i];
@@ -107,7 +107,7 @@ class _ClassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(18),
         child: Row(
           children: [
             Container(
@@ -172,7 +172,7 @@ class _JadwalTab extends StatelessWidget {
           byDay.putIfAbsent(day, () => []).add(s);
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: byDay.length,
           itemBuilder: (context, i) {
             final day = byDay.keys.elementAt(i);
@@ -181,7 +181,7 @@ class _JadwalTab extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -271,7 +271,7 @@ class _PresensiTab extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: records.length,
           itemBuilder: (context, i) {
             final r = records[i];
@@ -334,7 +334,7 @@ class _NilaiTab extends StatelessWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           itemCount: grades.length,
           itemBuilder: (context, i) {
             final g = grades[i];

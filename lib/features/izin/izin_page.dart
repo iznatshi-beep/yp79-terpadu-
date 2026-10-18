@@ -174,7 +174,7 @@ class _IzinPageState extends State<IzinPage> {
     return RefreshIndicator(
       onRefresh: _muat,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 90),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 92),
         itemCount: _izin.length,
         itemBuilder: (context, i) {
           final z = _izin[i];
@@ -187,11 +187,11 @@ class _IzinPageState extends State<IzinPage> {
           };
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              boxShadow: appSoftShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -48,7 +48,7 @@ class _AnakListState extends State<_AnakList> {
       padding: EdgeInsets.zero,
       children: [
         Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -92,13 +92,13 @@ class _AnakListState extends State<_AnakList> {
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
               return const Padding(
-                padding: EdgeInsets.all(14),
+                padding: EdgeInsets.all(18),
                 child: SkeletonRow(),
               );
             }
             final recs = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
                 children: [
                   if (recs.isEmpty)
@@ -127,14 +127,14 @@ class _AnakListState extends State<_AnakList> {
             }
             final grades = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SectionHeader(title: 'Nilai Anak (Terakhir)'),
                   if (grades.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.all(14),
+                      padding: EdgeInsets.all(18),
                       child: EmptyState(
                         title: 'Belum ada nilai',
                         message: 'Nilai yang dipublikasikan akan tampil di sini.',
@@ -166,14 +166,14 @@ class _AnakListState extends State<_AnakList> {
             }
             final items = snap.data?.data ?? const [];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SectionHeader(title: 'Pembiayaan Sekolah Anak'),
                   if (items.isEmpty)
                     const Padding(
-                      padding: EdgeInsets.all(14),
+                      padding: EdgeInsets.all(18),
                       child: EmptyState(
                         title: 'Belum ada data pembiayaan',
                         message:
@@ -227,8 +227,8 @@ class _PresensiRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -282,8 +282,8 @@ class _GradeRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -336,8 +336,8 @@ class _FinanceRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: appSoftShadow,
       ),
       padding: const EdgeInsets.all(12),
       child: Row(

@@ -267,7 +267,7 @@ class _NilaiInputPageState extends State<NilaiInputPage> {
                 ),
                 if (_error != null)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: Text(
                       _error!,
                       style: const TextStyle(
@@ -281,7 +281,7 @@ class _NilaiInputPageState extends State<NilaiInputPage> {
           ? null
           : SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                 child: FilledButton.icon(
                   onPressed: _menyimpan ? null : _simpan,
                   icon: _menyimpan
@@ -315,7 +315,7 @@ class _NilaiInputPageState extends State<NilaiInputPage> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
       itemCount: _siswa.length,
       itemBuilder: (context, i) {
         final s = _siswa[i];
