@@ -316,32 +316,36 @@ Catatan penting: karena repo **publik**, jangan pernah commit
 
 ### K11 — Project Supabase yang diberikan TIDAK COCOK (verifikasi live 18 Okt 2026)
 
-Diuji langsung ke `https://kqkemiuqyfhqbwlgguqg.supabase.co` dengan publishable key:
+Hasil `python tools/verify_supabase.py` ke `https://kqkemiuqyfhqbwlgguqg.supabase.co`:
 
 ```
-profiles / student_profiles / parent_profiles / classes / attendance_records /
-assignments / submissions / finance_items / mabit_participants  -> PGRST205 (tidak ada)
-
-school_settings -> ADA tapi bentuk kolomnya BEDA:
-                   id, nama_sekolah, alamat, telepon, email, logo_url, zona_waktu
-                   (migrasi yp79 butuh: key, value, updated_at)
-
-subjects / class_enrollments / teacher_assignments / schedules / leave_requests /
-exams / exam_attempts / library_loans / notifications / audit_logs / announcements -> ADA
-
-chat_messages -> ERROR 42P17 "infinite recursion detected in policy for
-                 relation conversation_members"
+OK      : 35/59 tabel ada
+MISSING : 21 tabel (profiles, student_profiles, parent_profiles, teacher_profiles,
+          parent_student, classes, attendance_sessions, attendance_records,
+          assignments, finance_categories, finance_items, admissions,
+          admission_parents, mabit_events, mabit_participants, mabit_group_members,
+          mabit_room_assignments, mabit_rundown_items, memorization_submissions,
+          digital_resources, vehicle_locations)
+ERROR   : 9 (chat_conversations, conversation_members, chat_messages -> 42P17
+          infinite recursion; school_settings/profiles/attendance_records/
+          grading_records/leave_requests/chat_messages -> bentuk kolom beda)
 ```
 
-Project itu milik **aplikasi sebelumnya** (`sekolah terpadu`, folder lama sudah tidak
-ada / di-rename) dengan bentuk tabel berbeda, dan RLS-nya sendiri punya bug rekursi.
-Menjalankan `0001_schema.sql` di situ akan **gagal di tengah jalan**, bukan membuat
-skema baru: `create table if not exists` melewati tabel yang sudah ada, lalu
-`insert into school_settings (key, value)` gagal karena kolom `key` tidak ada.
+Contoh bentrok kolom yang terbukti:
+```
+grading_records.student_user_id  -> 42703 column does not exist
+leave_requests.student_user_id   -> 42703 column does not exist
+chat_messages.isi                -> 42703 column does not exist
+school_settings                  -> kolomnya id/nama_sekolah/zona_waktu, bukan key/value
+```
 
-**Keputusan: buat project Supabase BARU khusus yp79**, lalu pakai
-`supabase/migrations/ALL_IN_ONE.sql` (6 migrasi digabung berurutan, 2.745 baris)
-supaya cukup sekali paste di SQL Editor.
+Artinya 35 tabel yang "ada" itu **varian aplikasi lama dengan nama kolom berbeda** —
+lebih berbahaya daripada tabel yang tidak ada, karena `create table if not exists`
+pada migrasi yp79 akan melewatinya dan menyisakan bentuk yang salah.
+
+**Keputusan yang diambil: project Supabase BARU khusus yp79.** Untuk pemakaian ulang
+project lama, `RESET_DESTRUCTIVE.sql` (drop schema public cascade) wajib dijalankan
+lebih dulu, dan itu menghapus seluruh data aplikasi lama.
 
 ### K12 — Jenis kunci Supabase (penting, pernah tertukar)
 
