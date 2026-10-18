@@ -8,6 +8,7 @@ import '../../../widgets/dashboard_widgets.dart';
 import '../../../widgets/quick_actions.dart';
 import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
+import '../admin/manajemen_pengguna_page.dart';
 import '../izin/izin_page.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
@@ -50,6 +51,11 @@ class AdminDashboard extends StatelessWidget {
                   const SizedBox(height: 6),
                   ModulAksiGrid(
                     items: [
+                      ModulAksi(
+                        label: 'Kelola Akun',
+                        icon: Icons.manage_accounts_outlined,
+                        builder: (_) => const ManajemenPenggunaPage(),
+                      ),
                       ModulAksi(
                         label: 'Input Presensi',
                         icon: Icons.fact_check_outlined,

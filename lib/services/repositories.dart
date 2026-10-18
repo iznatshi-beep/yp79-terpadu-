@@ -946,6 +946,198 @@ class Repos {
     }
   }
 
+  // ---------- MANAJEMEN PENGGUNA (admin) ----------
+  //
+  // Sebelumnya tidak ada satu pun jalan membuat akun dari aplikasi, sehingga
+  // sekolah praktis tidak bisa memakainya. Fungsi-fungsi di bawah ini
+  // memanggil RPC yang memeriksa `is_admin()` di sisi SERVER; menyembunyikan
+  // tombol di aplikasi bukan pengaman.
+
+  /// Daftar seluruh pengguna beserta peran, email, dan status aktifnya.
+  /// Hanya admin yang akan melihat baris (kebijakan RLS `profiles`).
+  static Future<QueryResult<RowData>> listPengguna({int limit = 500}) async {
+    try {
+      final rows = await db
+          .from('profiles')
+          .select('id, nama, email, role, created_at')
+          .order('role')
+          .limit(limit);
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Kelas yang tersedia (untuk menempatkan siswa saat akun dibuat).
+  static Future<QueryResult<RowData>> listKelas() async {
+    try {
+      final rows = await db.rpc('list_kelas');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Daftar siswa (untuk menghubungkan akun orang tua ke anak).
+  static Future<QueryResult<RowData>> listSiswa() async {
+    try {
+      final rows = await db
+          .from('profiles')
+          .select('id, nama, email')
+          .eq('role', 'siswa')
+          .order('nama');
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Relasi orang tua <-> siswa. Membaca dua sisi; UI hanya perlu menampilkan
+  /// pasangan yang sudah diverifikasi.
+  static Future<QueryResult<RowData>> relasiOrtuSiswa() async {
+    try {
+      final rows = await db
+          .from('parent_student')
+          .select('parent_user_id, student_user_id, hubungan, diverifikasi');
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Admin membuat akun baru. Mengembalikan null bila berhasil, atau pesan
+  /// kegagalan yang siap ditampilkan.
+  static Future<String?> adminCreateUser({
+    required String email,
+    required String nama,
+    required String role,
+    required String password,
+    String? identitas,
+    String? kelasId,
+  }) async {
+    try {
+      await db.rpc('admin_create_user', params: {
+        'p_email': email,
+        'p_nama': nama,
+        'p_role': role,
+        'p_password': password,
+        'p_identitas': identitas,
+        'p_kelas_id': kelasId,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminSetRole({
+    required String userId,
+    required String role,
+    String? identitas,
+  }) async {
+    try {
+      await db.rpc('admin_set_role', params: {
+        'p_user_id': userId,
+        'p_role': role,
+        'p_identitas': identitas,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminSetAktif(String userId, bool aktif) async {
+    try {
+      await db.rpc('admin_set_aktif',
+          params: {'p_user_id': userId, 'p_aktif': aktif});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminResetPassword(String email) async {
+    try {
+      await db.rpc('admin_reset_password', params: {'p_email': email});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminHapusUser(String userId) async {
+    try {
+      await db.rpc('admin_hapus_user', params: {'p_user_id': userId});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminSetRelasiOrtu({
+    required String parentId,
+    required String studentId,
+    required String hubungan,
+  }) async {
+    try {
+      await db.rpc('admin_set_relasi_ortu', params: {
+        'p_parent_id': parentId,
+        'p_student_id': studentId,
+        'p_hubungan': hubungan,
+        'p_verifikasi': true,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> adminHapusRelasiOrtu(
+      String parentId, String studentId) async {
+    try {
+      await db.rpc('admin_hapus_relasi_ortu',
+          params: {'p_parent_id': parentId, 'p_student_id': studentId});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Status aktif akun dibaca dari `auth.users.banned_until`. Tabel auth tidak
+  /// bisa dibaca langsung dari aplikasi, jadi statusnya diambil lewat RPC.
+  static Future<QueryResult<RowData>> statusAkun() async {
+    try {
+      final rows = await db.rpc('admin_status_akun');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// PostgrestError berisi `code`/`message`/`details`; pesan mentahnya panjang
+  /// dan berbahasa Inggris, sedangkan pesan dari RPC (raise exception) sudah
+  /// ditulis untuk dibaca admin. Dahulukan yang terakhir.
+  static String _pesan(Object e) {
+    final s = e.toString();
+    final m = RegExp(r'message:\s*([^,\n]+)').firstMatch(s);
+    if (m != null) return m.group(1)!.trim();
+    return s;
+  }
+
   // ---------- AUDIT LOG (admin) ----------
 
   static Future<QueryResult<RowData>> auditLogs({int limit = 200}) async {

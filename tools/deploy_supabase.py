@@ -212,9 +212,31 @@ def ambil_key_dari_env() -> str:
 
 
 def tulis_env(url: str, key: str) -> None:
-    ENV_FILE.write_text(
-        f"SUPABASE_URL={url}\nSUPABASE_ANON_KEY={key}\n", encoding="utf-8"
-    )
+    """Perbarui hanya kunci Supabase.
+
+    Dulu fungsi ini menulis ULANG seluruh .env, sehingga kunci lain (mis.
+    GOOGLE_WEB_CLIENT_ID) ikut terhapus setiap kali migrasi dijalankan.
+    Sekarang kunci lain dipertahankan apa adanya.
+    """
+    baris: list[str] = []
+    sudah_url = sudah_key = False
+    if ENV_FILE.exists():
+        for lama in ENV_FILE.read_text(encoding="utf-8").splitlines():
+            if lama.startswith("SUPABASE_URL="):
+                baris.append(f"SUPABASE_URL={url}")
+                sudah_url = True
+            elif lama.startswith("SUPABASE_ANON_KEY="):
+                baris.append(f"SUPABASE_ANON_KEY={key}")
+                sudah_key = True
+            else:
+                baris.append(lama)
+
+    if not sudah_url:
+        baris.insert(0, f"SUPABASE_URL={url}")
+    if not sudah_key:
+        baris.append(f"SUPABASE_ANON_KEY={key}")
+
+    ENV_FILE.write_text("\n".join(baris).strip() + "\n", encoding="utf-8")
     print(f".env diperbarui: {url}")
 
 
