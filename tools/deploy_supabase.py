@@ -203,6 +203,12 @@ REPO = "iznatshi-beep/yp79-terpadu-"
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ref", help="project ref yang sudah ada (lewati pembuatan)")
+    ap.add_argument(
+        "--reset",
+        action="store_true",
+        help="DESTRUKTIF: hapus seluruh schema public di project target sebelum migrasi "
+             "(dipakai kalau memakai project aplikasi lama).",
+    )
     ap.add_argument("--skip-gh", action="store_true", help="jangan set GitHub secret")
     args = ap.parse_args()
 
@@ -217,6 +223,22 @@ def main() -> int:
         ref = bikin_project(token, org_id)
 
     tunggu_healthy(token, ref)
+
+    if args.reset:
+        reset_file = MIGRATIONS / "RESET_DESTRUCTIVE.sql"
+        print(f"!! MODE RESET: mengosongkan schema public di project {ref}")
+        code, res = api(
+            token,
+            "POST",
+            f"/projects/{ref}/database/query",
+            {"query": reset_file.read_text(encoding="utf-8")},
+        )
+        print(f"  HTTP {code}: {json.dumps(res)[:600] if not isinstance(res, str) else res[:600]}")
+        if code not in (200, 201):
+            print("Reset gagal — berhenti.")
+            sys.exit(1)
+        print("  Schema public dikosongkan.")
+
     push_migrasi(token, ref)
 
     url = f"https://{ref}.supabase.co"
