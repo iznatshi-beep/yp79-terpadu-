@@ -314,6 +314,49 @@ Catatan penting: karena repo **publik**, jangan pernah commit
 
 ---
 
+### K11 — Project Supabase yang diberikan TIDAK COCOK (verifikasi live 18 Okt 2026)
+
+Diuji langsung ke `https://kqkemiuqyfhqbwlgguqg.supabase.co` dengan publishable key:
+
+```
+profiles / student_profiles / parent_profiles / classes / attendance_records /
+assignments / submissions / finance_items / mabit_participants  -> PGRST205 (tidak ada)
+
+school_settings -> ADA tapi bentuk kolomnya BEDA:
+                   id, nama_sekolah, alamat, telepon, email, logo_url, zona_waktu
+                   (migrasi yp79 butuh: key, value, updated_at)
+
+subjects / class_enrollments / teacher_assignments / schedules / leave_requests /
+exams / exam_attempts / library_loans / notifications / audit_logs / announcements -> ADA
+
+chat_messages -> ERROR 42P17 "infinite recursion detected in policy for
+                 relation conversation_members"
+```
+
+Project itu milik **aplikasi sebelumnya** (`sekolah terpadu`, folder lama sudah tidak
+ada / di-rename) dengan bentuk tabel berbeda, dan RLS-nya sendiri punya bug rekursi.
+Menjalankan `0001_schema.sql` di situ akan **gagal di tengah jalan**, bukan membuat
+skema baru: `create table if not exists` melewati tabel yang sudah ada, lalu
+`insert into school_settings (key, value)` gagal karena kolom `key` tidak ada.
+
+**Keputusan: buat project Supabase BARU khusus yp79**, lalu pakai
+`supabase/migrations/ALL_IN_ONE.sql` (6 migrasi digabung berurutan, 2.745 baris)
+supaya cukup sekali paste di SQL Editor.
+
+### K12 — Jenis kunci Supabase (penting, pernah tertukar)
+
+| Kunci | Contoh awalan | Boleh ada di APK? | Dipakai untuk |
+|---|---|---|---|
+| Publishable / anon | `sb_publishable_...`, `eyJ...` | **YA** (memang publik, dilindungi RLS) | aplikasi Flutter, CI `--dart-define` |
+| Secret / service_role | `sb_secret_...` | **TIDAK PERNAH** | hanya server (Edge Function), bypass semua RLS |
+| Personal access token | `sbp_...` | **TIDAK PERNAH** | Supabase Management API (bikin/hapus project) |
+
+Kunci `sb_secret_...` yang pernah dikirim lewat chat **harus dianggap bocor** dan
+di-rotasi di Dashboard → Project Settings → API Keys. Aplikasi ini tidak
+membutuhkannya sama sekali.
+
+---
+
 ## 8. YANG BELUM DIKERJAKAN & ALASANNYA (jujur)
 
 Saya tidak mengerjakan hal-hal berikut, dan ini **bukan** karena "sudah selesai":
