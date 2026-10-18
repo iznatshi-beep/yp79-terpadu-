@@ -195,8 +195,8 @@ menghapusnya dari riwayat git dan fork orang lain.
 | T10 | `test/widget_test.dart` berisi `expect(1 + 1, 2)` dan judul tes yang tidak diuji | Test tidak menguji apa pun (test palsu) | **DIPERBAIKI** — smoke test boot + pemetaan peran |
 | T11 | File duplikat `lib/features/beranda/widgets/dashboard_widgets.dart` (salinan kelas yang sama dengan `lib/widgets/`) | Dead code, risiko divergensi | **DIHAPUS** |
 | T12 | `google-services.json` ada tetapi `oauth_client: []` **kosong**, dan `google_sign_in ^7.2.0` tidak dipakai di kode | Google Sign-In mustahil; klaim "ada" tidak sah | **BELUM** — perlu OAuth client ID Android di Firebase (§7) |
-| T13 | `import 'package:gotrue/gotrue.dart'` padahal `gotrue` bukan dependency langsung; `AuthStateChange` **tidak diekspor** oleh gotrue | Rentan pecah saat upgrade; analyzer `undefined_shown_name` | **BELUM DIPERBAIKI** (jalan, tapi rapuh) — lihat §8 |
-| T14 | 27 temuan analyzer (mayoritas `unused_import`, `unused_field` `_tab` di akademik, `deprecated_member_use` `anonKey`) | Kebersihan kode | **SEBAGIAN** — analyze berjalan tiap CI (non-blocking) |
+| T13 | `import 'package:gotrue/gotrue.dart'` padahal `gotrue` bukan dependency langsung; `AuthStateChange` **tidak diekspor** oleh gotrue | Rentan pecah saat upgrade; analyzer `undefined_shown_name` | **DIPERBAIKI** — impor type auth dari `supabase_flutter` |
+| T14 | 27 temuan analyzer (`unused_import`, `unused_field` `_tab`, `deprecated_member_use`, `invalid_null_aware_operator`, dll) | Kebersihan kode | **DIPERBAIKI** — `flutter analyze` kini **0 error, 0 warning** (run `887e089`) |
 | T15 | Kartu notifikasi menandai "dibaca" tanpa `setState`/refresh | Status baca tidak terlihat berubah tanpa keluar-masuk halaman | **BELUM** |
 | T16 | Chat: UI hanya daftar percakapan + pengumuman; `Repos.messages()` & `Repos.sendMessage()` **tidak dipakai** | Chat tidak bisa dibaca/dikirim dari aplikasi | **BELUM** |
 
@@ -326,16 +326,18 @@ Saya tidak mengerjakan hal-hal berikut, dan ini **bukan** karena "sudah selesai"
 3. **Push notification FCM** dan **QR/RFID presensi**: butuh kredensial/perangkat
    eksternal yang belum tersedia. Struktur data sudah disiapkan, tetapi saya
    tidak akan mengklaim fitur ini aktif.
-4. **T10 (parser tipe gotrue)**: import `package:gotrue/...` sebaiknya diganti
-   impor dari `supabase_flutter` pada putaran berikutnya; sekarang jalan dan
-   build hijau, sehingga saya tidak mengubahnya agar tidak menambah risiko build
-   tanpa bisa mengompilasi lokal.
-5. **Sidebar/layout adaptif tablet** dan **animasi**: belum ada; bottom nav
-   sudah berfungsi tetapi belum memenuhi bagian "responsif tablet" spesifikasi.
-6. **Uji di perangkat nyata**: saya tidak punya emulator/perangkat di lingkungan
+4. **Uji di perangkat nyata**: saya tidak punya emulator/perangkat di lingkungan
    ini, jadi semua verifikasi dilakukan lewat build CI, analyze, unit/widget
    test, dan audit statis. Uji visual per layar masih perlu Anda lakukan setelah
    APK di-install.
+5. **`anonKey` masih dipakai** di `Supabase.initialize`. Supabase menandainya
+   `deprecated` dan mengarahkan ke `publishableKey`. Saya tidak mengubahnya
+   karena tanpa bisa mengompilasi lokal saya tidak mau menebak signature baru
+   yang bisa menggagalkan build yang sudah hijau. Perubahan ini bersifat
+   kosmetik (info-level) pada versi paket saat ini.
+
+6. **Sidebar/layout adaptif tablet** dan **animasi**: belum ada; bottom nav
+   sudah berfungsi tetapi belum memenuhi bagian "responsif tablet" spesifikasi.
 
 ---
 
@@ -371,8 +373,19 @@ Kredensial untuk APK di CI: cukup `SUPABASE_URL` + `SUPABASE_ANON_KEY`
 | `6ab9484` | snapshot state awal (sebelum audit) — agar kondisi awal bisa dibandingkan |
 | `9d9a56e` | **Build hijau**: perbaikan import & tipe builder, `dotenv.load()`, izin INTERNET, navigasi login, un-track keystore, `.gitignore`, `0004_fixes.sql`, test nyata, hapus file duplikat, CI analyze+test non-blocking, dukungan `--dart-define` |
 | `0bda02f` | **CBT berfungsi**: RPC soal tanpa kunci, penilaian server diperbaiki (`0005_cbt_dan_akses.sql`), halaman pengerjaan ujian nyata, `StartExamResult`, policy `finance_categories`, banner ganda, reset sandi asli |
+| `8e08703` | `docs/AUDIT.md` (dokumen ini) |
+| `563ac80` | Bersih-bersih analyzer: 12 `unused_import`, `unused_field`, 2 `unnecessary_null_comparison` |
+| `887e089` | Import type auth dari `supabase_flutter` (gotrue rapuh), null-aware berlebih — **analyzer 0 warning** |
 
-Verifikasi terakhir: CI run `39131499220` (`9d9a56e`) = **success**, artifact APK
-78 MB terunggah, dan CI juga mencetak laporan `flutter analyze` + `flutter test`
-(dua langkah ini sengaja `continue-on-error` agar laporan tetap dihasilkan tanpa
-menggagalkan build; keluaran analyze dipakai pada §4 T14).
+Verifikasi terakhir (semua hijau):
+
+| Run | Commit | Hasil |
+|---|---|---|
+| `39131499220` | `9d9a56e` | success — **build APK pertama yang berhasil** |
+| `39132305847` | `0bda02f` | success — kode CBT lolos kompilasi |
+| `39132512756` | `8e08703` | success |
+| `39132761734` | `563ac80` | success — `All tests passed!` (+2 test), analyze 0 unused/error, artifact 78.333.111 byte |
+| `39133227918` | `887e089` | success — `flutter analyze`: **0 warning, 0 error** |
+
+Sebelum audit: **7 run berturut-turut gagal** dan aplikasi belum pernah
+menghasilkan APK. Sesudah audit: **5 run berturut-turut hijau**.

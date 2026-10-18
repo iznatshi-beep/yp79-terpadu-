@@ -23,6 +23,16 @@ yp79-terpadu/
 4. Copy-paste seluruh isi `supabase/migrations/0001_schema.sql` → Run.
 5. Ulangi untuk `0002_rls_functions.sql`.
 6. Ulangi untuk `0003_seed.sql`.
+7. Ulangi untuk `0004_fixes.sql` — perbaikan hasil audit: unique constraint presensi
+   (tanpa ini penyimpanan presensi gagal), perbaikan seed tahun ajaran semester genap,
+   foreign key `student_profiles.kelas_id`, index tambahan.
+8. Ulangi untuk `0005_cbt_dan_akses.sql` — perbaikan hasil audit: perhitungan nilai
+   CBT yang benar, RPC soal tanpa kunci jawaban, policy kategori biaya untuk
+   orang tua/siswa.
+
+> **Penting (audit 18 Okt 2026)**: URL Supabase yang lama
+> (`yukqngrtgevveimhrwke.supabase.co`) sudah **tidak ada** (DNS: non-existent
+> domain). Buat project Supabase baru, lalu pakai URL project tersebut.
 
 Semua tabel, RLS policies, dan functions harus sukses. Jika ada error, selesaikan terlebih dahulu sebelum lanjut.
 
@@ -33,8 +43,8 @@ Semua tabel, RLS policies, dan functions harus sukses. Jika ada error, selesaika
 Buat file `.env` di root `yp79-terpadu/` (sudah di-gitignore otomatis oleh .gitignore Flutter):
 
 ```
-SUPABASE_URL=https://yukqngrtgevveimhrwke.supabase.co
-SUPABASE_ANON_KEY=<anon key dari Supabase Dashboard → Project Settings → API>
+SUPABASE_URL=https://<project-ref-baru>.supabase.co
+SUPABASE_ANON_KEY=<publishable/anon key dari Supabase Dashboard → Project Settings → API>
 ```
 
 **Anon key** di-copy dari Supabase Dashboard, **bukan** access token `sbp_`. Access token bersifat per-project dan tidak boleh dipakai sebagai anon key.
@@ -89,10 +99,16 @@ Push ke branch `main` repo `iznatshi-beep/yp79-terpadu-`:
 **Secrets yang dibutuhkan di GitHub repo** (Settings → Secrets → Actions):
 | Name | Isi |
 |---|---|
-| `KEYSTORE_BASE64` | Base64 dari `yp79-release.keystore` |
+| `KEYSTORE_BASE64` | Base64 dari `yp79-release.keystore` (**rotasi keystore lama — pernah ter-push ke repo publik**) |
 | `KEYSTORE_PASSWORD` | Password keystore |
 | `KEYSTORE_KEYPASSWORD` | Password alias |
 | `KEYSTORE_ALIAS` | Nama alias (biasanya `yp79-release`) |
+| `SUPABASE_URL` | URL project Supabase baru |
+| `SUPABASE_ANON_KEY` | Publishable/anon key project baru (bukan `sb_secret_`, bukan `sbp_`) |
+
+Tanpa 4 secret keystore, CI tetap menghasilkan APK (varian debug ditandatangani
+debug key) supaya build tidak pernah gagal total. Tanpa 2 secret Supabase, APK
+ter-build tetapi berjalan tanpa backend dan mencetak peringatan di log CI.
 
 ## 8. Status Integrasi Eksternal
 
