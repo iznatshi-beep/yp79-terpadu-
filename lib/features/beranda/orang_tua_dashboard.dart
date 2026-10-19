@@ -66,7 +66,11 @@ class _AnakListState extends State<_AnakList> {
                         ? anak[i]['nama'].toString()
                         : 'Anak ${i + 1}'
                     : 'Anak ${i + 1}';
-            final iNow = _index.clamp(0, (widget.anakIds.length).max(0) - 1);
+            // clamp() pada int mengembalikan num, sedangkan indeks list
+            // butuh int -> konversi eksplisit.
+            final iNow = widget.anakIds.isEmpty
+                ? 0
+                : _index.clamp(0, widget.anakIds.length - 1).toInt();
             return Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
