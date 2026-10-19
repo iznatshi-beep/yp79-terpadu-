@@ -34,10 +34,34 @@ class AuthService {
 
   static Future<SessionProfile> _toProfile(Session session) async {
     final user = session.user;
-    final roleRaw = user.appMetadata['role'] as String? ??
-        user.userMetadata?['role'] as String?;
-    final name = user.userMetadata?['nama'] as String? ?? user.email;
-    final role = Role.fromString(roleRaw);
+
+    // Peran resmi SELALU dibaca dari tabel profiles (server = sumber kebenaran).
+    // Sebelumnya role diambil dari metadata auth saja; akibatnya (1) akun
+    // Google tidak punya metadata role sehingga selalu dianggap siswa dan
+    // selalu disuruh memilih peran, dan (2) perubahan peran oleh admin
+    // (admin_set_role) tidak pernah terbaca oleh aplikasi.
+    String? roleRaw;
+    String? nama;
+    try {
+      final rows = await Supabase.instance.client
+          .from('profiles')
+          .select('role, nama')
+          .eq('id', user.id)
+          .limit(1);
+      if (rows.isNotEmpty) {
+        nama = rows.first['nama']?.toString();
+        roleRaw = rows.first['role']?.toString();
+      }
+    } catch (_) {
+      // Gagal membaca profil (jarang): jatuh ke metadata agar sesi tetap hidup.
+    }
+
+    final name = nama ?? user.email;
+    final role = Role.fromString(
+      roleRaw ??
+          user.appMetadata['role'] as String? ??
+          user.userMetadata?['role'] as String?,
+    );
 
     List<String> parentIds = const [];
     String? studentId;
