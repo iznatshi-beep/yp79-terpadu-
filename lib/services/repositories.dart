@@ -1245,7 +1245,7 @@ class Repos {
     }
   }
 
-  // ---------- AUDIT LOG (admin) ----------
+
 
   /// Daftar anak bagi akun orang tua, LENGKAP DENGAN NAMA + NIS + KELAS.
   ///
@@ -1292,51 +1292,6 @@ class Repos {
       };
     } catch (_) {
       return const {};
-    }
-  }
-
-  // ---------- BUS & GPS (admin) ----------
-  static Future<QueryResult<RowData>> vehicles() async {
-    try {
-      final rows = await db
-          .from('vehicles')
-          .select()
-          .order('plat_nomor');
-      return QueryResult<RowData>(
-        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
-        total: rows.length,
-      );
-    } catch (e) {
-      return QueryResult<RowData>(data: [], error: e.toString());
-    }
-  }
-
-  static Future<String?> tambahBus({
-    required String plat,
-    required String jenis,
-    String? sopir,
-    required int kapasitas,
-  }) async {
-    try {
-      await db.from('vehicles').insert({
-        'plat_nomor': plat,
-        'jenis': jenis,
-        'sopir_nama': sopir,
-        'kapasitas': kapasitas,
-        'status': 'aktif',
-      });
-      return null;
-    } catch (e) {
-      return _pesan(e);
-    }
-  }
-
-  static Future<String?> ubahStatusBus(String id, String status) async {
-    try {
-      await db.from('vehicles').update({'status': status}).eq('id', id);
-      return null;
-    } catch (e) {
-      return _pesan(e);
     }
   }
 

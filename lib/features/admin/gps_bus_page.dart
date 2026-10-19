@@ -76,7 +76,6 @@ class _GpsBusPageState extends State<GpsBusPage> {
         label: const Text('Tambah bus'),
       ),
       body: _isi(),
-      ),
     );
   }
 
