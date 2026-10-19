@@ -4,10 +4,8 @@ import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
-import '../../../widgets/common.dart';
 
-/// Halaman MABIT lengkap: kegiatan, rundown, mutaba'ah, setoran hafalan.
-/// Semua data nyata dari database (migrasi 0001-0012), tanpa dummy.
+/// Halaman MABIT: Kegiatan / Rundown / Mutaba'ah / Hafalan (data nyata DB).
 class PageMabit extends StatelessWidget {
   const PageMabit({super.key, this.profile});
   final SessionProfile? profile;
@@ -31,12 +29,14 @@ class PageMabit extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: TabBarView(children: [
-              _EventTab(),
-              _RundownTab(),
-              _MutabaahTab(profile: profile),
-              _HafalanTab(profile: profile),
-            ]),
+            child: TabBarView(
+              children: [
+                const _EventTab(),
+                const _RundownTab(),
+                _MutabaahTab(),
+                const _HafalanTab(),
+              ],
+            ),
           ),
         ],
       ),
@@ -44,10 +44,10 @@ class PageMabit extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// TAB 1: Kegiatan MABIT (semua role bisa lihat)
-// ---------------------------------------------------------------------------
+/// Tab Kegiatan: daftar event MABIT.
 class _EventTab extends StatelessWidget {
+  const _EventTab();
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<QueryResult<RowData>>(
@@ -103,17 +103,19 @@ class _EventTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Mulai: ${e['tanggal_mulai']?.toString().split('T')[0] ?? '-'}'
-                      ' - Selesai: ${e['tanggal_selesai']?.toString().split('T')[0] ?? '-'}',
+                      'Mulai: ${(e['tanggal_mulai']?.toString().split('T').first) ?? '-'}'
+                      ' - Selesai: ${(e['tanggal_selesai']?.toString().split('T').first) ?? '-'}',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
                     ),
-                    if ((e['lokasi']?.toString() ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text('Lokasi: ${e['lokasi']}',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary)),
-                    ],
+                    if ((e['lokasi']?.toString() ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('Lokasi: ' + e['lokasi'].toString(),
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary)),
+                      ),
                   ],
                 ),
               ),
@@ -125,24 +127,24 @@ class _EventTab extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// TAB RUNDOWN
-// ---------------------------------------------------------------------------
+/// Tab Rundown: butuh event pertama untuk mengambil rundown-nya.
 class _RundownTab extends StatelessWidget {
   const _RundownTab();
+
+  Future<QueryResult<RowData>> _muatRundown() async {
+    final events = await Repos.mabitEvents();
+    final eventId =
+        events.data.isNotEmpty ? events.data.first['id']?.toString() : null;
+    if (eventId == null || eventId.isEmpty) {
+      return const QueryResult<RowData>(data: []);
+    }
+    return Repos.mabitRundown(eventId);
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<QueryResult<RowData>>(
-      future: () async {
-        final events = await Repos.mabitEvents();
-        final eventId =
-            events.data.isNotEmpty ? events.data.first['id']?.toString() : null;
-        if (eventId == null || eventId.isEmpty) {
-          return const QueryResult<RowData>(data: []);
-        }
-        return Repos.mabitRundown(eventId);
-      }(),
+      future: _muatRundown(),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Padding(padding: EdgeInsets.all(16), child: SkeletonRow());
@@ -171,12 +173,14 @@ class _RundownTab extends StatelessWidget {
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
-                    Text(r['jam']?.toString() ?? '-',
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary)),
-                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 64,
+                      child: Text(r['jam']?.toString() ?? '-',
+                          style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,11 +207,10 @@ class _RundownTab extends StatelessWidget {
       },
     );
   }
+
 }
 
-// ---------------------------------------------------------------------------
-// TAB MUTABA'AH
-// ---------------------------------------------------------------------------
+/// Tab Mutaba'ah: jurnal ibadah harian milik siswa sendiri.
 class _MutabaahTab extends StatelessWidget {
   const _MutabaahTab();
 
@@ -223,9 +226,8 @@ class _MutabaahTab extends StatelessWidget {
         if (entries.isEmpty) {
           return const EmptyState(
             title: 'Belum ada jurnal mutabaah',
-            message:
-                'Checklist ibadah harian (dzikir, shalat sunnah, bacaan Al-Quran) '
-                'yang Anda isi akan tampil di sini.',
+            message: 'Checklist ibadah harian (dzikir, shalat sunnah, bacaan '
+                'Al-Quran) yang Anda isi akan tampil di sini.',
             icon: Icons.auto_awesome_outlined,
           );
         }
@@ -300,9 +302,7 @@ class _MutabaahTab extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// TAB HAFALAN
-// ---------------------------------------------------------------------------
+/// Tab Hafalan: capaian setoran milik siswa sendiri.
 class _HafalanTab extends StatelessWidget {
   const _HafalanTab();
 
@@ -330,8 +330,7 @@ class _HafalanTab extends StatelessWidget {
             final m = items[i];
             final status = m['status']?.toString() ?? 'menunggu';
             final badge = switch (status) {
-              'disetujui' || 'terverifikasi' =>
-                (BadgeState.success, 'Terverifikasi'),
+              'disetujui' || 'terverifikasi' => (BadgeState.success, 'Terverifikasi'),
               'ditolak' => (BadgeState.danger, 'Ditolak'),
               _ => (BadgeState.warning, 'Menunggu'),
             };
@@ -350,7 +349,7 @@ class _HafalanTab extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(m['judul'] ?? '-',
+                          child: Text(m['judul']?.toString() ?? '-',
                               style: const TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
@@ -376,11 +375,10 @@ class _HafalanTab extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
-}
 }
