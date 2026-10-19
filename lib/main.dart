@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import 'app.dart';
 import 'core/config.dart';
 import 'core/auth_bus.dart';
+import 'services/push_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -68,7 +69,11 @@ Future<void> main() async {
   if (AppConfig.isConfigured) {
     try {
       Supabase.instance.client.auth.onAuthStateChange.listen(
-        (_) => authChanged.value++,
+        (data) {
+          authChanged.value++;
+          // Daftarkan push token setiap kali sesi terbentuk (login/refresh).
+          if (data.session != null) PushService.daftarkan();
+        },
         onError: (Object e, StackTrace st) {
           debugPrint('onAuthStateChange error: $e');
           try {

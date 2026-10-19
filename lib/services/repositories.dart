@@ -1138,7 +1138,69 @@ class Repos {
     return s;
   }
 
-  // ---------- ORANG TUA / GURU ----------
+  // ---------- PPDB (admin) ----------
+  static Future<QueryResult<RowData>> ppdbDaftar() async {
+    try {
+      final rows = await db
+          .from('admissions')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(300);
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<String?> ppdbSetStatus(String id, String status) async {
+    try {
+      await db.rpc('ppdb_set_status',
+          params: {'p_id': id, 'p_status': status});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> ppdbSetHasil(String id, String hasil,
+      {bool publikasi = false}) async {
+    try {
+      await db.rpc('ppdb_set_hasil', params: {
+        'p_id': id,
+        'p_hasil': hasil,
+        'p_publikasi': publikasi,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  static Future<String?> terbitkanPengumuman({
+    required String judul,
+    required String isi,
+    String kategori = 'umum',
+    String prioritas = 'biasa',
+    String target = 'semua',
+  }) async {
+    try {
+      await db.rpc('terbitkan_pengumuman', params: {
+        'p_judul': judul,
+        'p_isi': isi,
+        'p_kategori': kategori,
+        'p_prioritas': prioritas,
+        'p_target': target,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  // ---------- AUDIT LOG (admin) ----------
 
   /// Daftar anak bagi akun orang tua, LENGKAP DENGAN NAMA + NIS + KELAS.
   ///
