@@ -98,7 +98,7 @@ class _PilihPeranPageState extends State<PilihPeranPage> {
               FilledButton(
                 onPressed: _pilih == null
                     ? null
-                    : () => Navigator.of(context).pop(),
+                    : () => widget.onPilih(_pilih!),
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50)),
                 child: const Text('Lanjutkan'),
