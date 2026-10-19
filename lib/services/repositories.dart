@@ -1200,6 +1200,45 @@ class Repos {
     }
   }
 
+  // ---------- MUTABAAH & HAFALAN ----------
+  static Future<QueryResult<RowData>> mutabaahSaya() async {
+    try {
+      final uid = db.auth.currentUser?.id;
+      if (uid == null) return const QueryResult<RowData>(data: []);
+      final rows = await db
+          .from('mutabaah_entries')
+          .select()
+          .eq('student_user_id', uid)
+          .order('tanggal', ascending: false)
+          .limit(30);
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  static Future<QueryResult<RowData>> memorization() async {
+    try {
+      final uid = db.auth.currentUser?.id;
+      dynamic q = db
+          .from('memorization_submissions')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(100);
+      if (uid != null) q = q.eq('student_user_id', uid);
+      final rows = await q;
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
   // ---------- BUS & GPS (admin) ----------
   static Future<QueryResult<RowData>> vehicles() async {
     try {
