@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/auth_bus.dart';
 import '../../../core/config.dart';
+import '../../../core/models/role.dart';
 import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/auth_service.dart';
 import '../beranda/beranda_page.dart';
 import '../login/login_page.dart';
+import 'pilih_peran_page.dart';
 
 /// Gate utama: tampilkan login atau dashboard beranda sesuai status auth.
 ///
@@ -97,6 +99,10 @@ class _AuthGateState extends State<AuthGate> {
     return awal == null ? '$e' : 'Supabase gagal disiapkan: $awal';
   }
 
+  /// Peran yang dipilih pengguna untuk sesi ini (null = belum memilih).
+  /// Pilihan hanya mengganti tampilan; data tetap dilindungi RLS server.
+  Role? _peranSesi;
+
   @override
   Widget build(BuildContext context) {
     if (!AppConfig.isConfigured) {
@@ -112,8 +118,25 @@ class _AuthGateState extends State<AuthGate> {
     if (profil == null) {
       return const LoginPage();
     }
-    return BerandaPage(profile: profil);
+    // Alur client: setelah login, pilih dulu peran sesi ini.
+    if (_peranSesi == null) {
+      return PilihPeranPage(
+        profile: profil,
+        onPilih: (r) => setState(() => _peranSesi = r),
+      );
+    }
+    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi!));
   }
+
+  /// Salin profil dengan peran sesi (tanpa mengubah data login asli).
+  SessionProfile _profilDenganPeran(SessionProfile p, Role r) => SessionProfile(
+        role: r,
+        name: p.name,
+        sub: p.sub,
+        email: p.email,
+        studentId: r == Role.siswa ? p.studentId : p.studentId,
+        parentStudentIds: p.parentStudentIds,
+      );
 }
 
 /// Gate saat backend tidak dikonfigurasi: menampilkan login + banner.

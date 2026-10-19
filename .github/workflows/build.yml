@@ -62,6 +62,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          FCM_VAPID_KEY: ${{ secrets.FCM_VAPID_KEY }}
         run: |
           DEFINES=""
           if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
@@ -70,15 +71,18 @@ jobs:
           else
             echo "::warning::SUPABASE_URL/SUPABASE_ANON_KEY belum di-set sebagai repo secret. APK akan ter-build tetapi login/DB nonaktif (layar 'backend belum dikonfigurasi'). Tambahkan kedua secret tersebut untuk APK yang benar-benar terhubung ke database."
           fi
-          # Web client ID OAuth Google (client_type 3 di google-services.json).
-          # Bukan rahasia: nilainya memang ikut ter-commit di file itu. Dipakai
-          # sebagai serverClientId Google Sign-In supaya ID token yang diterbitkan
-          # ber-aud Web client, sesuai konfigurasi provider Google di Supabase.
           if [ -n "$GOOGLE_WEB_CLIENT_ID" ]; then
             DEFINES="$DEFINES --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID"
             echo "Google Sign-In dikonfigurasi."
           else
             echo "::warning::GOOGLE_WEB_CLIENT_ID kosong. Tombol 'Masuk dengan Google' tampil nonaktif (bukan gagal diam)."
+          fi
+          # Firebase Cloud Messaging (push notification). VAPID key bukan rahasia
+          # (sama seperti anon key) — dipakai browser/web; Android cukup pakai
+          # google-services.json. Diisi bila FCM sudah dikonfigurasi.
+          if [ -n "$FCM_VAPID_KEY" ]; then
+            DEFINES="$DEFINES --dart-define=FCM_VAPID_KEY=$FCM_VAPID_KEY"
+            echo "FCM VAPID key dikonfigurasi."
           fi
           # android-x86_64 (emulator) 19 MB dan tidak pernah dipakai HP asli.
           # Sisakan arm64-v8a (HP modern) + armeabi-v7a (HP 32-bit lawas) supaya
