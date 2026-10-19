@@ -118,14 +118,17 @@ class _AuthGateState extends State<AuthGate> {
     if (profil == null) {
       return const LoginPage();
     }
-    // Alur client: setelah login, pilih dulu peran sesi ini.
-    if (_peranSesi == null) {
+    // Alur client: setelah login, pilih dulu peran sesi ini (hanya
+    // Siswa/Orang Tua). Akun staff (guru/pembimbing/admin) dibuat oleh admin
+    // dan langsung masuk dashboard peran resminya tanpa layar pilih peran.
+    if (_peranSesi == null && !profil.role.isStaff) {
       return PilihPeranPage(
         profile: profil,
         onPilih: (r) => setState(() => _peranSesi = r),
       );
     }
-    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi!));
+        // Staff: peran sesi = peran resmi. Siswa/Orang Tua: peran yang dipilih.
+    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi ?? profil.role));
   }
 
   /// Salin profil dengan peran sesi (tanpa mengubah data login asli).

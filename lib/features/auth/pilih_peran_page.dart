@@ -3,19 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../core/models/role.dart';
 import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
-import '../../../widgets/app_states.dart';
-import '../../../widgets/common.dart';
 
-/// Layar pilih peran — tampil SETELAH login (email/Google) berhasil.
+/// Layar pilih peran - tampil SETELAH login (email/Google) berhasil.
 ///
-/// Alur yang diminta client: pengguna masuk dulu, baru memilih peran sesi ini
-/// (Siswa / Orang Tua / Guru / Admin). Pilihan HANYA menentukan tampilan sesi;
-/// peran resmi tetap di database dan tidak bisa dinaikkan dari sini.
+/// Alur client: pengguna masuk dulu, baru memilih peran sesi ini. HANYA dua
+/// pilihan: Siswa atau Orang Tua. Guru, Guru Pembimbing, dan Admin dibuat
+/// oleh admin sekolah lewat Manajemen Pengguna; akun staff TIDAK melewati
+/// layar ini - mereka langsung masuk dashboard peran resminya.
 ///
-/// Peran yang ditandai "resmi" diambil dari `profiles.role` (baca saat profil
-/// dihydrate). Peran lain boleh dipilih untuk melihat tampilan peran tersebut
-/// — data tetap dilindungi RLS server, jadi pilih peran yang bukan miliknya
-/// hanya akan menampilkan dashboard kosong, bukan data orang lain.
+/// Keamanan: pilihan hanya mengganti tampilan sesi ini. Peran resmi tetap di
+/// database (profiles.role) dan seluruh data tetap dilindungi RLS server,
+/// sehingga memilih peran yang bukan miliknya hanya menampilkan dashboard
+/// kosong, bukan data orang lain.
 class PilihPeranPage extends StatefulWidget {
   const PilihPeranPage({
     super.key,
@@ -37,8 +36,6 @@ class _PilihPeranPageState extends State<PilihPeranPage> {
 
   @override
   Widget build(BuildContext context) {
-    final roleResmi = widget.profile.role;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -77,28 +74,28 @@ class _PilihPeranPageState extends State<PilihPeranPage> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Halo ${widget.profile.name ?? ''}. Pilih peran untuk sesi ini. '
-                'Data tetap dilindungi sesuai peran resmi akun Anda.',
+                'Halo ${widget.profile.name ?? ''}. '
+                'Pilih peran untuk sesi ini.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                     fontSize: 12.5, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
-              for (final role in Role.values)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _KartuPeran(
-                    role: role,
-                    terpilih: _pilih == role,
-                    resmi: role == roleResmi,
-                    onTap: () => setState(() => _pilih = role),
-                  ),
-                ),
+              _KartuPeran(
+                role: Role.siswa,
+                terpilih: _pilih == Role.siswa,
+                onTap: () => setState(() => _pilih = Role.siswa),
+              ),
+              const SizedBox(height: 10),
+              _KartuPeran(
+                role: Role.orangTua,
+                terpilih: _pilih == Role.orangTua,
+                onTap: () => setState(() => _pilih = Role.orangTua),
+              ),
               const SizedBox(height: 14),
               FilledButton(
-                onPressed: _pilih == null
-                    ? null
-                    : () => widget.onPilih(_pilih!),
+                onPressed:
+                    _pilih == null ? null : () => widget.onPilih(_pilih!),
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(50)),
                 child: const Text('Lanjutkan'),
@@ -115,30 +112,16 @@ class _KartuPeran extends StatelessWidget {
   const _KartuPeran({
     required this.role,
     required this.terpilih,
-    required this.resmi,
     required this.onTap,
   });
 
   final Role role;
   final bool terpilih;
-  final bool resmi;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final (ikon, deskripsi) = switch (role) {
-      Role.admin => (
-          Icons.admin_panel_settings_outlined,
-          'Kelola seluruh data sekolah & pengguna'
-        ),
-      Role.guru => (
-          Icons.co_present_outlined,
-          'Presensi kelas, input nilai, tugas & materi'
-        ),
-      Role.guruPembimbing => (
-          Icons.night_shelter_outlined,
-          'Pendampingan MABIT & verifikasi hafalan'
-        ),
       Role.siswa => (
           Icons.school_outlined,
           'LMS, ujian CBT, jadwal, perpustakaan'
@@ -147,6 +130,7 @@ class _KartuPeran extends StatelessWidget {
           Icons.family_restroom_rounded,
           'Pantau presensi, nilai, & pembiayaan anak'
         ),
+      _ => (Icons.help_outline, ''),
     };
 
     return InkWell(
@@ -182,21 +166,11 @@ class _KartuPeran extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(role.label,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.ink)),
-                      if (resmi) ...[
-                        const SizedBox(width: 6),
-                        const StatusBadge(
-                            label: 'Peran akun Anda',
-                            state: BadgeState.success),
-                      ],
-                    ],
-                  ),
+                  Text(role.label,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.ink)),
                   const SizedBox(height: 2),
                   Text(deskripsi,
                       style: const TextStyle(

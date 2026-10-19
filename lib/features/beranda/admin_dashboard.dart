@@ -10,6 +10,7 @@ import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
 import '../admin/broadcast_page.dart';
 import '../admin/manajemen_pengguna_page.dart';
+import '../admin/gps_bus_page.dart';
 import '../ppdb/ppdb_page.dart';
 import '../izin/izin_page.dart';
 
@@ -67,6 +68,11 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Broadcast',
                         icon: Icons.campaign_outlined,
                         builder: (_) => const BroadcastPengumumanPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Bus & GPS',
+                        icon: Icons.directions_bus_outlined,
+                        builder: (_) => const GpsBusPage(),
                       ),
                       ModulAksi(
                         label: 'Input Presensi',
