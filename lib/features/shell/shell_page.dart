@@ -41,7 +41,23 @@ class _TabDef {
 }
 
 class _ShellPageState extends State<ShellPage> {
+  /// Id tab yang sudah pernah dibuka.
+  ///
+  /// `body` hanya menampilkan tab aktif. Namun, bila tab sudah pernah dibuka
+  /// (ada di [_aktif]), widgetnya dipertahankan di dalam [IndexedStack]
+  /// sehingga form/list tidak hilang saat pindah. Tab yang belum pernah
+  /// dibuka tetap belum dibangun — tidak ada biaya render berlebih saat masuk
+  /// aplikasi (penting: admin punya 8 tab).
+  final Set<int> _aktif = {0};
+
   int _tab = 0;
+
+  void _keTab(int i) {
+    setState(() {
+      _tab = i;
+      _aktif.add(i);
+    });
+  }
 
   List<_TabDef> get _tabs {
     final role = widget.profile.role;
@@ -238,7 +254,16 @@ class _ShellPageState extends State<ShellPage> {
           ),
         ],
       ),
-      body: tab.builder(profile: widget.profile),
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          for (var i = 0; i < tabs.length; i++)
+            if (_aktif.contains(i))
+              tabs[i].builder(profile: widget.profile)
+            else
+              const SizedBox.shrink(),
+        ],
+      ),
       // Navigasi bawah ala showcase: putih, sudut atas 24, label tampil.
       // Bila tab > 5 (mis. admin 8 tab), label hanya muncul pada tab terpilih
       // agar tidak berdesakan — showcase-nya sendiri hanya 5 slot.
@@ -255,7 +280,7 @@ class _ShellPageState extends State<ShellPage> {
             labelBehavior: tabs.length > 5
                 ? NavigationDestinationLabelBehavior.onlyShowSelected
                 : NavigationDestinationLabelBehavior.alwaysShow,
-            onDestinationSelected: (i) => setState(() => _tab = i),
+            onDestinationSelected: _keTab,
             destinations: [
               for (final t in tabs)
                 NavigationDestination(

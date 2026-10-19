@@ -1138,6 +1138,56 @@ class Repos {
     return s;
   }
 
+  // ---------- ORANG TUA / GURU ----------
+
+  /// Daftar anak bagi akun orang tua, LENGKAP DENGAN NAMA + NIS + KELAS.
+  ///
+  /// Sebelumnya dashboard orang tua hanya punya daftar UUID (dari
+  /// `SessionProfile.parentStudentIds`) sehingga yang tampil cuma "Anak 1",
+  /// "Anak 2" — nama anak tidak pernah bisa dibaca karena kebijakan RLS
+  /// `profiles` hanya mengizinkan profil sendiri. RPC ini (migrasi 0010)
+  /// mengambil nama hanya untuk anak yang relasinya SUDAH DIVERIFIKASI.
+  static Future<QueryResult<RowData>> anakSaya() async {
+    try {
+      final rows = await db.rpc('anak_saya');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Kelas yang diampu guru (wali kelas atau punya penugasan mengajar),
+  /// beserta jumlah siswanya.
+  static Future<QueryResult<RowData>> kelasSaya() async {
+    try {
+      final rows = await db.rpc('kelas_saya');
+      return QueryResult<RowData>(data: [
+        for (final r in (rows as List)) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Nama siswa untuk sekumpulan id (dipakai guru agar tidak menampilkan UUID).
+  static Future<Map<String, String>> namaSiswa(List<String> ids) async {
+    if (ids.isEmpty) return const {};
+    try {
+      final rows = await db
+          .from('profiles')
+          .select('id, nama')
+          .inFilter('id', ids);
+      return {
+        for (final r in rows)
+          if (r['id'] != null) r['id'].toString(): r['nama']?.toString() ?? '-'
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
   // ---------- AUDIT LOG (admin) ----------
 
   static Future<QueryResult<RowData>> auditLogs({int limit = 200}) async {

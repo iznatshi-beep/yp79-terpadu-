@@ -40,6 +40,13 @@ class _AnakList extends StatefulWidget {
 
 class _AnakListState extends State<_AnakList> {
   int _index = 0;
+  Future<QueryResult<RowData>>? _futureAnak;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureAnak = Repos.anakSaya();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,45 +54,71 @@ class _AnakListState extends State<_AnakList> {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionHeader(title: 'Aksi Cepat'),
-              const SizedBox(height: 6),
-              ModulAksiGrid(
-                items: [
-                  ModulAksi(
-                    label: 'Ajukan Izin',
-                    icon: Icons.event_busy_outlined,
-                    builder: (_) => IzinPage(profile: widget.profile),
+        FutureBuilder<QueryResult<RowData>>(
+          future: _futureAnak,
+          builder: (context, snapAnak) {
+            final anak = snapAnak.data?.data ?? const <RowData>[];
+            // Nama anak diambil dari RPC anak_saya (relasi wajib sudah
+            // diverifikasi admin). Saat belum termuat, fallback ke "Anak N".
+            String namaAnak(int i) =>
+                i < anak.length
+                    ? (anak[i]['nama']?.toString().isNotEmpty ?? false)
+                        ? anak[i]['nama'].toString()
+                        : 'Anak ${i + 1}'
+                    : 'Anak ${i + 1}';
+            final iNow = _index.clamp(0, (widget.anakIds.length).max(0) - 1);
+            return Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  HeroSummaryCard(
+                    greeting:
+                        'Assalamualaikum, ${widget.profile.name ?? 'Orang Tua'} 👋',
+                    title: anak.isEmpty
+                        ? 'Pantau anak Anda'
+                        : 'Pantau ${namaAnak(iNow)}',
+                    value: namaAnak(iNow),
+                    subtitle: 'Presensi, nilai, dan pembiayaan anak tampil di bawah.',
+                    icon: Icons.family_restroom_rounded,
                   ),
+                  const SizedBox(height: 16),
+                  const SectionHeader(title: 'Pilih Anak'),
+                  const SizedBox(height: 4),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < widget.anakIds.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(namaAnak(i)),
+                              selected: _index == i,
+                              onSelected: (_) => setState(() => _index = i),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const SectionHeader(title: 'Aksi Cepat'),
+                  const SizedBox(height: 6),
+                  ModulAksiGrid(
+                    items: [
+                      ModulAksi(
+                        label: 'Ajukan Izin',
+                        icon: Icons.event_busy_outlined,
+                        builder: (_) => IzinPage(profile: widget.profile),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const SectionHeader(title: 'Presensi Anak Terakhir'),
                 ],
               ),
-              const SizedBox(height: 10),
-              const SectionHeader(title: 'Pilih Anak'),
-              const SizedBox(height: 4),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (var i = 0; i < widget.anakIds.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text('Anak ${i + 1}'),
-                          selected: _index == i,
-                          onSelected: (_) => setState(() => _index = i),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              const SectionHeader(title: 'Presensi Anak Terakhir'),
-            ],
-          ),
+            );
+          },
         ),
         FutureBuilder<QueryResult<RowData>>(
           future: Repos.attendance(studentId: anakId),
@@ -96,7 +129,7 @@ class _AnakListState extends State<_AnakList> {
                 child: SkeletonRow(),
               );
             }
-            final recs = snap.data?.data ?? const [];
+            final recs = snap.data?.data ?? const <RowData>[];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
@@ -125,7 +158,7 @@ class _AnakListState extends State<_AnakList> {
             if (snap.connectionState != ConnectionState.done) {
               return const SizedBox(height: 10);
             }
-            final grades = snap.data?.data ?? const [];
+            final grades = snap.data?.data ?? const <RowData>[];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(
@@ -164,7 +197,7 @@ class _AnakListState extends State<_AnakList> {
             if (snap.connectionState != ConnectionState.done) {
               return const SizedBox(height: 10);
             }
-            final items = snap.data?.data ?? const [];
+            final items = snap.data?.data ?? const <RowData>[];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Column(

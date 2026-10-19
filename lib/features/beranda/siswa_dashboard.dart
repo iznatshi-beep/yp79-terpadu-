@@ -38,6 +38,19 @@ class SiswaDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Kartu hero ala showcase TaskFlow: biru penuh + teks putih.
+                  HeroSummaryCard(
+                    greeting: 'Assalamualaikum, ${profile.name ?? 'Siswa'} 👋',
+                    title: 'Presensi hari ini',
+                    value: hadirHariIni ? 'Hadir' : 'Belum',
+                    subtitle: hadirHariIni
+                        ? 'Presensi tercatat dengan benar. Semangat belajarnya!'
+                        : 'Presensi dicatat oleh guru atau sistem QR.',
+                    icon: hadirHariIni
+                        ? Icons.check_circle_outline
+                        : Icons.access_time_rounded,
+                  ),
+                  const SizedBox(height: 18),
                   const SectionHeader(title: 'Aksi Cepat'),
                   const SizedBox(height: 6),
                   ModulAksiGrid(
@@ -50,65 +63,13 @@ class SiswaDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const SectionHeader(title: 'Presensi Hari Ini'),
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      boxShadow: appSoftShadow,
-                    ),
-                    padding: const EdgeInsets.all(18),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color:
-                                (hadirHariIni ? AppColors.success : AppColors.warning)
-                                    .withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                          child: Icon(
-                            hadirHariIni
-                                ? Icons.check_circle_outline
-                                : Icons.access_time,
-                            size: 22,
-                            color: hadirHariIni
-                                ? AppColors.success
-                                : AppColors.warning,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                hadirHariIni
-                                    ? 'Anda tercatat hadir hari ini'
-                                    : 'Belum tercatat hadir hari ini',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                hadirHariIni
-                                    ? 'Presensi dicatat dengan benar.'
-                                    : 'Presensi dicatat oleh guru atau sistem QR.',
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Ringkasan presensi 7 hari terakhir (data nyata, bukan
+                  // angka hardcode).
+                  if (recs.isNotEmpty) ...[
+                    const SectionHeader(title: 'Rekap 7 Hari Terakhir'),
+                    const SizedBox(height: 4),
+                    _RekapPresensiRow(records: recs),
+                  ],
                 ],
               ),
             );
@@ -188,6 +149,82 @@ class SiswaDashboard extends StatelessWidget {
         ),
         const SizedBox(height: 20),
       ],
+    );
+  }
+}
+
+/// Baris rekap presensi 7 hari terakhir: hitung dari data sungguhan.
+class _RekapPresensiRow extends StatelessWidget {
+  const _RekapPresensiRow({required this.records});
+  final List<Map<String, dynamic>> records;
+
+  @override
+  Widget build(BuildContext context) {
+    final batas = DateTime.now().subtract(const Duration(days: 7));
+    final mingguIni = [
+      for (final r in records)
+        if (DateTime.tryParse(r['tanggal']?.toString() ?? '') != null &&
+            DateTime.parse(r['tanggal'].toString()).isAfter(batas))
+          r
+    ];
+
+    final hadir = mingguIni.where((r) => r['status'] == 'hadir').length;
+    final terlambat =
+        mingguIni.where((r) => r['status'] == 'terlambat').length;
+    final izin = mingguIni
+        .where((r) => r['status'] == 'izin' || r['status'] == 'sakit')
+        .length;
+    final alpa = mingguIni.where((r) => r['status'] == 'alpa').length;
+
+    return Row(
+      children: [
+        _KotakRekap(label: 'Hadir', value: '$hadir'),
+        _KotakRekap(label: 'Terlambat', value: '$terlambat'),
+        _KotakRekap(label: 'Alpa', value: '$alpa'),
+        _KotakRekap(label: 'Izin/Sakit', value: '$izin'),
+      ],
+    );
+  }
+}
+
+/// Satu kotak rekap (Hadir / Terlambat / Alpa / Izin) dengan warna status.
+class _KotakRekap extends StatelessWidget {
+  const _KotakRekap({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final warna = switch (label) {
+      'Hadir' => AppColors.success,
+      'Terlambat' => AppColors.warning,
+      'Alpa' => AppColors.danger,
+      _ => AppColors.primary,
+    };
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          boxShadow: appSoftShadow,
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: warna)),
+            const SizedBox(height: 2),
+            Text(label,
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.muted)),
+          ],
+        ),
+      ),
     );
   }
 }
