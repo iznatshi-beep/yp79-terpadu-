@@ -303,8 +303,6 @@ class _MutabaahTab extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // TAB HAFALAN
 // ---------------------------------------------------------------------------
-} 
-
 class _HafalanTab extends StatelessWidget {
   const _HafalanTab();
 
@@ -383,4 +381,5 @@ class _HafalanTab extends StatelessWidget {
         );
       },
   }
+}
 }
