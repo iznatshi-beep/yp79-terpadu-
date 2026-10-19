@@ -230,3 +230,39 @@ class _PpdbPageState extends State<PpdbPage> {
   }
 }
 
+
+class _PilFilter extends StatelessWidget {
+  const _PilFilter({
+    required this.label,
+    required this.aktif,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool aktif;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: aktif ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          boxShadow: aktif ? null : appSoftShadow,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: aktif ? FontWeight.w700 : FontWeight.w500,
+            color: aktif ? Colors.white : AppColors.ink,
+          ),
+        ),
+      ),
+    );
+  }
+}
