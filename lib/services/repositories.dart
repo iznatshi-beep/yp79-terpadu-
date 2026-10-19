@@ -1068,12 +1068,21 @@ class Repos {
     }
   }
 
-  static Future<String?> adminResetPassword(String email) async {
+  /// Reset kata sandi: server menyetel kata sandi BARU acak dan mengembalikannya
+  /// untuk disampaikan admin ke pengguna (SMTP belum dikonfigurasi).
+  static Future<Map<String, String?>> adminResetPassword(String email) async {
     try {
-      await db.rpc('admin_reset_password', params: {'p_email': email});
-      return null;
+      final res = await db.rpc(
+        'admin_reset_password',
+        params: {'p_email': email},
+      );
+      final m = (res is Map) ? res : const {};
+      return {
+        'email': m['email']?.toString() ?? email,
+        'password_baru': m['password_baru']?.toString() ?? '',
+      };
     } catch (e) {
-      return _pesan(e);
+      return {'error': _pesan(e)};
     }
   }
 

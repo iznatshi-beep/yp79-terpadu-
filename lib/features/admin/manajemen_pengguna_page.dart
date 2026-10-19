@@ -348,14 +348,29 @@ class _ManajemenPenggunaPageState extends State<ManajemenPenggunaPage> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.lock_reset_rounded),
-                title: const Text('Kirim tautan reset kata sandi'),
-                subtitle: const Text('Tautan dikirim ke email pengguna'),
+                title: const Text('Setel kata sandi baru'),
+                subtitle: const Text(
+                    'Kata sandi acak dibuat server, tampil untuk disampaikan '
+                    'ke pengguna'),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final err = await Repos.adminResetPassword(
+                  final hasil = await Repos.adminResetPassword(
                       p['email']?.toString() ?? '');
-                  _pesan(err ?? 'Tautan reset dikirim ke ${p['email']}.',
-                      sukses: err == null);
+                  if (!mounted) return;
+                  final err = hasil['error'];
+                  if (err != null) {
+                    _pesan(err);
+                    return;
+                  }
+                  final baru = hasil['password_baru'] ?? '';
+                  _pesan(
+                    baru.isEmpty
+                        ? 'Kata sandi direset.'
+                        : 'Kata sandi baru untuk ${hasil['email']}: $baru '
+                            '(sampaikan ke pengguna, lalu minta dia '
+                            'menggantinya).',
+                    sukses: true,
+                  );
                 },
               ),
               ListTile(
