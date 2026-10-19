@@ -152,7 +152,11 @@ class _AuthGateState extends State<AuthGate> {
     if (_peranSesi == null && !profil.role.isStaff) {
       return PilihPeranPage(
         profile: profil,
-        onPilih: (r) => setState(() => _simpanPeran(profil.sub, r)),
+        onPilih: (r) {
+          final uid = profil.sub;
+          if (uid == null) return;
+          setState(() => _simpanPeran(uid, r));
+        },
       );
     }
     // Staff: peran sesi = peran resmi. Siswa/Orang Tua: peran yang dipilih.
