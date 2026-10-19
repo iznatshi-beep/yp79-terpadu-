@@ -380,6 +380,7 @@ class _HafalanTab extends StatelessWidget {
           ),
         );
       },
+    );
   }
 }
 }
