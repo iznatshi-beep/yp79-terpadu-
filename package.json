@@ -1,0 +1,12 @@
+{
+  "name": "yp79-fcm-notifier",
+  "version": "1.0.0",
+  "description": "FCM push notifier untuk YP79 Terpadu — polling Supabase + kirim via Firebase Admin SDK",
+  "main": "push-notifier/fcm.js",
+  "scripts": {
+    "fcm": "node push-notifier/fcm.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0"
+  }
+}
