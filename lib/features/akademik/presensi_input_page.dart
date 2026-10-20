@@ -6,6 +6,7 @@ import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
+import 'qr_presensi_page.dart';
 
 /// Input presensi kelas (guru & admin).
 ///
@@ -270,17 +271,45 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
-                child: FilledButton.icon(
-                  onPressed: _menyimpan ? null : _simpan,
-                  icon: _menyimpan
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.save_outlined, size: 18),
-                  label: Text('Simpan Presensi (${_siswa.length} siswa)'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _menyimpan ? null : _simpan,
+                        icon: _menyimpan
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.save_outlined, size: 18),
+                        label: Text('Simpan (${_siswa.length} siswa)'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QrPresensiPage(
+                              siswa: [
+                                for (final s in _siswa)
+                                  {
+                                    'user_id':
+                                        s['student_user_id']?.toString() ?? '',
+                                    'nama': _namaSiswa(s),
+                                  },
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                      label: const Text('QR'),
+                    ),
+                  ],
                 ),
               ),
             ),

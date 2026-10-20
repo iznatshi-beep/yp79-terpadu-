@@ -1275,6 +1275,31 @@ class Repos {
     }
   }
 
+  /// Buat token QR presensi untuk seorang siswa (dipanggil guru/admin).
+  /// Token diverifikasi `verify_attendance_qr` oleh perangkat siswa.
+  static Future<String?> generateAttendanceQr(String studentId) async {
+    try {
+      final res = await db.rpc(
+        'generate_attendance_qr',
+        params: {'p_student': studentId},
+      );
+      return res?.toString();
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Siswa memverifikasi token QR (memindai QR guru) — presensi tercatat.
+  static Future<String?> verifikasiQr(String token, String studentId) async {
+    try {
+      await db.rpc('verify_attendance_qr',
+          params: {'p_token': token, 'p_student': studentId});
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
   static Future<String?> tambahBus({
     required String plat,
     required String jenis,
