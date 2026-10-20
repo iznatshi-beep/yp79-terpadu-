@@ -37,7 +37,7 @@ class _MasterDataPageState extends State<MasterDataPage> {
 }
 
 Future<bool> _hapus(BuildContext context, String tabel, String id, String nama,
-    VoidCallback refresh) async {
+    {VoidCallback? refresh}) async {
   final yakin = await showConfirmDialog(
     context,
     judul: 'Hapus $nama?',
@@ -451,7 +451,7 @@ Future<void> _tambahJadwal(BuildContext context) async {
                         value: k['id'].toString(),
                         child: Text(k['nama']?.toString() ?? '-')),
                 ],
-                onChanged: (v) => setL(() => kelasSel = v),
+                onChanged: (v) => setL(() => kelasSel = v ?? kelasSel),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -463,13 +463,13 @@ Future<void> _tambahJadwal(BuildContext context) async {
                         value: m['id'].toString(),
                         child: Text(m['nama']?.toString() ?? '-')),
                 ],
-                onChanged: (v) => setL(() => mapelSel = v),
+                onChanged: (v) => setL(() => mapelSel = v ?? mapelSel),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 initialValue: hariSel,
                 decoration: const InputDecoration(labelText: 'Hari'),
-                items: const [
+                items: [
                   for (final h in [
                     'Senin',
                     'Selasa',
@@ -480,7 +480,7 @@ Future<void> _tambahJadwal(BuildContext context) async {
                   ])
                     DropdownMenuItem(value: h, child: Text(h)),
                 ],
-                onChanged: (v) => setL(() => hariSel = v),
+                onChanged: (v) => setL(() => hariSel = v ?? hariSel),
               ),
               const SizedBox(height: 10),
               TextField(
