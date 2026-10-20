@@ -727,13 +727,13 @@ class Repos {
 
   static Future<QueryResult<RowData>> libraryLoans({String? studentId}) async {
     try {
-      final q = _filter(
-        'library_loans',
-        orderCol: 'tanggal_pinjam',
-        ascending: false,
-        limit: 100,
-      );
-      if (studentId != null) q.eq('student_user_id', studentId);
+      // Judul buku di-embed supaya daftar pinjaman tidak menampilkan UUID.
+      dynamic q = db
+          .from('library_loans')
+          .select('*, library_books(judul)')
+          .order('tanggal_pinjam', ascending: false)
+          .limit(100);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
       final rows = await q;
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -1261,6 +1261,17 @@ class Repos {
       );
     } catch (e) {
       return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Siswa meminjam buku: RPC server memvalidasi stok, membuat baris
+  /// peminjaman (7 hari), dan mengurangi stok dalam satu transaksi.
+  static Future<String?> pinjamBuku(String bookId) async {
+    try {
+      await db.rpc('pinjam_buku', params: {'p_book_id': bookId});
+      return null;
+    } catch (e) {
+      return _pesan(e);
     }
   }
 

@@ -4,6 +4,8 @@ import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
+import '../../../widgets/common.dart';
+import 'mutabaah_form_page.dart';
 
 /// Halaman MABIT: Kegiatan / Rundown / Mutaba'ah / Hafalan (data nyata DB).
 class PageMabit extends StatelessWidget {
@@ -33,8 +35,8 @@ class PageMabit extends StatelessWidget {
               children: [
                 const _EventTab(),
                 const _RundownTab(),
-                _MutabaahTab(),
-                const _HafalanTab(),
+                _MutabaahTab(profile: profile),
+                _HafalanTab(profile: profile),
               ],
             ),
           ),
@@ -210,9 +212,11 @@ class _RundownTab extends StatelessWidget {
 
 }
 
-/// Tab Mutaba'ah: jurnal ibadah harian milik siswa sendiri.
+/// Tab Mutaba'ah: jurnal ibadah harian milik siswa sendiri + tombol isi.
 class _MutabaahTab extends StatelessWidget {
-  const _MutabaahTab();
+  const _MutabaahTab({this.profile});
+
+  final SessionProfile? profile;
 
   @override
   Widget build(BuildContext context) {
@@ -223,88 +227,120 @@ class _MutabaahTab extends StatelessWidget {
           return const Padding(padding: EdgeInsets.all(16), child: SkeletonRow());
         }
         final entries = snap.data?.data ?? const <RowData>[];
-        if (entries.isEmpty) {
-          return const EmptyState(
-            title: 'Belum ada jurnal mutabaah',
-            message: 'Checklist ibadah harian (dzikir, shalat sunnah, bacaan '
-                'Al-Quran) yang Anda isi akan tampil di sini.',
-            icon: Icons.auto_awesome_outlined,
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(18),
-          itemCount: entries.length,
-          itemBuilder: (context, i) {
-            final e = entries[i];
-            final checklist =
-                (e['checklist'] as Map?)?.cast<String, dynamic>() ?? {};
-            final diverifikasi = e['diverifikasi'] == true;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  boxShadow: appSoftShadow,
-                ),
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(e['tanggal']?.toString() ?? '-',
-                              style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.ink)),
-                        ),
-                        StatusBadge(
-                            label: diverifikasi ? 'Terverifikasi' : 'Belum',
-                            state: diverifikasi
-                                ? BadgeState.success
-                                : BadgeState.neutral),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ...checklist.entries.map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
+        return Stack(
+          children: [
+            if (entries.isEmpty)
+              const EmptyState(
+                title: 'Belum ada jurnal mutabaah',
+                message: 'Tekan tombol + untuk mengisi jurnal ibadah hari ini.',
+                icon: Icons.auto_awesome_outlined,
+              )
+            else
+              ListView.builder(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
+                itemCount: entries.length,
+                itemBuilder: (context, i) {
+                  final e = entries[i];
+                  final checklist =
+                      (e['checklist'] as Map?)?.cast<String, dynamic>() ?? {};
+                  final diverifikasi = e['diverifikasi'] == true;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        boxShadow: appSoftShadow,
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Icon(
-                                c.value == true
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank,
-                                size: 18,
-                                color: c.value == true
-                                    ? AppColors.success
-                                    : AppColors.border,
-                              ),
-                              const SizedBox(width: 8),
                               Expanded(
-                                child: Text(c.key,
+                                child: Text(
+                                    e['tanggal']?.toString() ?? '-',
                                     style: const TextStyle(
-                                        fontSize: 12.5,
-                                        color: AppColors.textPrimary)),
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink)),
                               ),
+                              StatusBadge(
+                                  label: diverifikasi
+                                      ? 'Terverifikasi'
+                                      : 'Belum',
+                                  state: diverifikasi
+                                      ? BadgeState.success
+                                      : BadgeState.neutral),
                             ],
                           ),
-                        )),
-                  ],
-                ),
+                          const SizedBox(height: 8),
+                          ...checklist.entries
+                              .map((c) => Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 4),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          c.value == true
+                                              ? Icons.check_box
+                                              : Icons.check_box_outline_blank,
+                                          size: 18,
+                                          color: c.value == true
+                                              ? AppColors.success
+                                              : AppColors.border,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(c.key,
+                                              style: const TextStyle(
+                                                  fontSize: 12.5,
+                                                  color:
+                                                      AppColors.textSecondary)),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
+                        ],
+                      ),
+                    ),
+                  ),
+                },
               ),
-            );
-          },
+            Positioned(
+              right: 18,
+              bottom: 18,
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  final prof = profile;
+                  if (prof == null) {
+                    showToast(context, 'Sesi belum siap.');
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MutabaahFormPage(profile: prof),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.edit_note_rounded),
+                label: const Text('Isi hari ini'),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 }
-
-/// Tab Hafalan: capaian setoran milik siswa sendiri.
+/// Tab Hafalan: capaian setoran milik siswa sendiri + tombol setor.
 class _HafalanTab extends StatelessWidget {
-  const _HafalanTab();
+  const _HafalanTab({this.profile});
+
+  final SessionProfile? profile;
+
 
   @override
   Widget build(BuildContext context) {
@@ -315,68 +351,95 @@ class _HafalanTab extends StatelessWidget {
           return const Padding(padding: EdgeInsets.all(16), child: SkeletonRow());
         }
         final items = snap.data?.data ?? const <RowData>[];
-        if (items.isEmpty) {
-          return const EmptyState(
-            title: 'Belum ada setoran hafalan',
-            message: 'Capaian hafalan (Juz Amma/doa) yang diverifikasi guru '
-                'pembimbing akan tampil di sini.',
-            icon: Icons.menu_book_outlined,
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(18),
-          itemCount: items.length,
-          itemBuilder: (context, i) {
-            final m = items[i];
-            final status = m['status']?.toString() ?? 'menunggu';
-            final badge = switch (status) {
-              'disetujui' || 'terverifikasi' => (BadgeState.success, 'Terverifikasi'),
-              'ditolak' => (BadgeState.danger, 'Ditolak'),
-              _ => (BadgeState.warning, 'Menunggu'),
-            };
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  boxShadow: appSoftShadow,
-                ),
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(m['judul']?.toString() ?? '-',
-                              style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.ink)),
-                        ),
-                        StatusBadge(label: badge.$2, state: badge.$1),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${m['kategori'] ?? '-'} · capaian: ${m['capaian'] ?? '-'}',
-                      style: const TextStyle(
-                          fontSize: 11.5, color: AppColors.textSecondary),
-                    ),
-                    if ((m['catatan']?.toString() ?? '').isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text('Catatan: ${m['catatan']}',
+        return Stack(
+          children: [
+            if (items.isEmpty)
+              const EmptyState(
+                title: 'Belum ada setoran hafalan',
+                message: 'Tekan tombol + untuk mengirim setoran hafalan Anda.',
+                icon: Icons.menu_book_outlined,
+              )
+            else
+              ListView.builder(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final m = items[i];
+                  final status = m['status']?.toString() ?? 'menunggu';
+                  final badge = switch (status) {
+                    'disetujui' || 'terverifikasi' =>
+                      (BadgeState.success, 'Terverifikasi'),
+                    'ditolak' => (BadgeState.danger, 'Ditolak'),
+                    _ => (BadgeState.warning, 'Menunggu'),
+                  };
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        boxShadow: appSoftShadow,
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(m['capaian']?.toString() ?? '-',
+                                    style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.ink)),
+                              ),
+                              StatusBadge(
+                                  label: badge.$2, state: badge.$1),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${m['kategori'] ?? '-'} · capaian: ${m['capaian'] ?? '-'}',
                             style: const TextStyle(
                                 fontSize: 11.5,
-                                color: AppColors.textSecondary)),
+                                color: AppColors.textSecondary),
+                          ),
+                          if ((m['catatan']?.toString() ?? '').isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text('Catatan: ${m['catatan']}',
+                                  style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppColors.textSecondary)),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            Positioned(
+              right: 18,
+              bottom: 18,
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  final prof = profile;
+                  if (prof == null) {
+                    showToast(context, 'Sesi belum siap.');
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SetorHafalanPage(profile: prof),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Setor hafalan'),
+              ),
+            ),
+          ],
         );
       },
     );

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
 
-/// Halaman Perpustakaan: katalog buku + e-book.
+/// Halaman Perpustakaan: katalog buku + e-book + pinjaman saya.
 class PagePerpus extends StatefulWidget {
-  const PagePerpus({super.key});
+  const PagePerpus({super.key, this.profile});
+
+  final SessionProfile? profile;
 
   @override
   State<PagePerpus> createState() => _PagePerpusState();
@@ -35,11 +38,22 @@ class _PagePerpusState extends State<PagePerpus> {
                 active: _tab == 1,
                 onTap: () => setState(() => _tab = 1),
               ),
+              const SizedBox(width: 8),
+              _TabPill(
+                label: 'Pinjaman Saya',
+                active: _tab == 2,
+                onTap: () => setState(() => _tab = 2),
+              ),
             ],
           ),
         ),
         Expanded(
-          child: _tab == 0 ? _KatalogBuku() : _EBookList(),
+          child: switch (_tab) {
+            0 => _KatalogBuku(),
+            1 => _EBookList(),
+            2 => _PinjamanSaya(),
+            _ => const SizedBox(),
+          },
         ),
       ],
     );
@@ -137,12 +151,12 @@ class _KatalogBuku extends StatelessWidget {
                         fontSize: 11.5, color: AppColors.textSecondary),
                   ),
                   trailing: StatusBadge(
-                    label:
-                        '${b['stok_tersedia'] ?? 0}/${b['stok_total'] ?? 0}',
+                    label: '${b['stok_tersedia'] ?? 0}/${b['stok_total'] ?? 0}',
                     state: (b['stok_tersedia'] as num? ?? 0) > 0
                         ? BadgeState.success
                         : BadgeState.danger,
                   ),
+                  onTap: () => _pinjamDialog(context, b),
                 ),
               ),
             );
@@ -150,6 +164,25 @@ class _KatalogBuku extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _pinjamDialog(BuildContext context, Map<String, dynamic> b) async {
+    final yakin = await showConfirmDialog(
+      context,
+      judul: 'Pinjam "${b['judul']}"?',
+      pesan: 'Masa pinjam 7 hari. Ambil bukunya di perpustakaan setelah '
+          'peminjaman tercatat.',
+      tombolYa: 'Pinjam',
+    );
+    if (!yakin) return;
+    final err = await Repos.pinjamBuku(b['id'].toString());
+    if (!context.mounted) return;
+    if (err == null) {
+      showToast(context, 'Peminjaman tercatat. Ambil buku di perpustakaan.',
+          color: AppColors.success);
+    } else {
+      showToast(context, err, color: AppColors.danger);
+    }
   }
 }
 
@@ -214,6 +247,83 @@ class _EBookList extends StatelessWidget {
                           context, 'Membuka e-book: ${d['judul']}');
                     }
                   },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+
+/// Pinjaman saya: daftar peminjaman milik pengguna yang sedang login.
+class _PinjamanSaya extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<QueryResult<Map<String, dynamic>>>(
+      future: Repos.libraryLoans(),
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: SkeletonRow(),
+          );
+        }
+        final rows = snap.data?.data ?? const [];
+        if (rows.isEmpty) {
+          return const EmptyState(
+            title: 'Belum ada peminjaman',
+            message: 'Peminjaman buku yang Anda lakukan akan tampil di sini.',
+            icon: Icons.bookmark_border_outlined,
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(18),
+          itemCount: rows.length,
+          itemBuilder: (context, i) {
+            final l = rows[i];
+            final sudahKembali = (l['dikembalikan'] != null) ||
+                l['status']?.toString() == 'kembali';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Card(
+                child: ListTile(
+                  leading: Icon(
+                    l['status'] == 'kembali'
+                        ? Icons.check_circle_outline
+                        : Icons.menu_book_outlined,
+                    color: l['status'] == 'kembali'
+                        ? AppColors.success
+                        : AppColors.primary,
+                  ),
+                  title: Text(
+                    (l['library_books'] is Map && l['library_books'] != null)
+                        ? ((l['library_books'] as Map)['judul']?.toString() ??
+                            '-')
+                        : (l['book_id']?.toString() ?? 'Buku'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary),
+                  ),
+                  subtitle: Text(
+                    'Pinjam: ${l['tanggal_pinjam']?.toString().split('T').first ?? '-'}'
+                    ' · Kembali: ${l['tanggal_kembali']?.toString().split('T').first ?? '-'}',
+                    style: const TextStyle(
+                        fontSize: 11.5, color: AppColors.textSecondary),
+                  ),
+                  trailing: StatusBadge(
+                    label: l['status']?.toString() ?? '-',
+                    state: l['status'] == 'kembali'
+                        ? BadgeState.success
+                        : (l['status'] == 'terlambat'
+                            ? BadgeState.danger
+                            : BadgeState.info),
+                  ),
                 ),
               ),
             );

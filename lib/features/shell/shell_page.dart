@@ -87,7 +87,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'Perpus',
           icon: Icons.library_books_outlined,
-          builder: ({required profile}) => const PagePerpus(),
+          builder: ({required profile}) => PagePerpus(profile: profile),
         ),
         _TabDef(
           label: 'Keuangan',
@@ -97,7 +97,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'MABIT',
           icon: Icons.stars_outlined,
-          builder: ({required profile}) => const PageMabit(),
+          builder: ({required profile}) => PageMabit(profile: profile),
         ),
         _TabDef(
           label: 'Komunikasi',
@@ -132,7 +132,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'MABIT',
           icon: Icons.stars_outlined,
-          builder: ({required profile}) => const PageMabit(),
+          builder: ({required profile}) => PageMabit(profile: profile),
         ),
         _TabDef(
           label: 'Komunikasi',
@@ -162,12 +162,12 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'Perpus',
           icon: Icons.library_books_outlined,
-          builder: ({required profile}) => const PagePerpus(),
+          builder: ({required profile}) => PagePerpus(profile: profile),
         ),
         _TabDef(
           label: 'MABIT',
           icon: Icons.stars_outlined,
-          builder: ({required profile}) => const PageMabit(),
+          builder: ({required profile}) => PageMabit(profile: profile),
         ),
       ];
     }
@@ -192,7 +192,7 @@ class _ShellPageState extends State<ShellPage> {
       _TabDef(
         label: 'MABIT',
         icon: Icons.stars_outlined,
-        builder: ({required profile}) => const PageMabit(),
+        builder: ({required profile}) => PageMabit(profile: profile),
       ),
       _TabDef(
         label: 'Komunikasi',
