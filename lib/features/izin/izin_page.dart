@@ -1,6 +1,3 @@
-import 'dart:io' show File;
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -334,7 +331,6 @@ class _FormIzinState extends State<_FormIzin> {
 
   Future<void> _pickLampiran() async {
     final picked = await Lampiran.pickFile(
-      type: FileType.custom,
       allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
     );
     if (picked == null || !mounted) return;
@@ -351,12 +347,10 @@ class _FormIzinState extends State<_FormIzin> {
                     Text('Mengunggah lampiran…'),
                   ]))),
     );
-    final bytes = File(picked.path).readAsBytesSync();
-    final url =
-        await Lampiran.upload(bytes, picked.name, mimeType: picked.mime);
+    final url = await Lampiran.upload(picked.bytes, picked.name);
     if (!mounted) return;
     Navigator.pop(context);
-    if (url != null && url.isNotEmpty) {
+    if (url.isNotEmpty) {
       setState(() {
         _lampiranUrl = url;
         _lampiranNama = picked.name;

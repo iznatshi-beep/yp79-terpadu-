@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/session_profile.dart';
@@ -72,7 +71,6 @@ class _MutabaahFormPageState extends State<MutabaahFormPage> {
 
   Future<void> _pickLampiran() async {
     final url = await Lampiran.pickAndUpload(
-      type: FileType.custom,
       allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
     );
     if (url != null && mounted) {
@@ -212,7 +210,6 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
 
   Future<void> _pickLampiran() async {
     final url = await Lampiran.pickAndUpload(
-      type: FileType.custom,
       allowedExtensions: const ['mp3', 'm4a', 'wav', 'mp4', 'mov', '3gp'],
     );
     if (url != null && mounted) {

@@ -1,5 +1,3 @@
-import 'dart:io' show File;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/session_profile.dart';
@@ -132,7 +130,6 @@ class _FormKumpulState extends State<_FormKumpul> {
 
   Future<void> _pickFile() async {
     final picked = await Lampiran.pickFile(
-      type: FileType.custom,
       allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
     );
     if (picked == null || !mounted) return;
@@ -149,12 +146,10 @@ class _FormKumpulState extends State<_FormKumpul> {
                     Text('Mengunggah file…'),
                   ]))),
     );
-    final bytes = File(picked.path).readAsBytesSync();
-    final url = await Lampiran.upload(bytes, picked.name,
-        mimeType: picked.mime);
+    final url = await Lampiran.upload(picked.bytes, picked.name);
     if (!mounted) return;
     Navigator.pop(context); // tutup progress
-    if (url != null && url.isNotEmpty) {
+    if (url.isNotEmpty) {
       setState(() {
         _fileUrl = url;
         _fileName = picked.name;

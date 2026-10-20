@@ -1,70 +1,50 @@
-import 'dart:io' show File;
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 
 /// Upload file ke Supabase Storage bucket `lampiran` (publik-read).
 ///
-/// App target: Android-only, jadi `dart:io` aman dipakai.
+/// App target: Android-only, tapi tidak pakai `dart:io` —
+/// `PlatformFile.readAsBytes()` dari file_picker 13.x cukup.
 ///
-/// API file_picker 13.x: `FileType` enum (image, video, audio, media,
-/// custom, any) + `allowedExtensions` untuk custom. Gak ada
-/// `FilePickerType` / `FilePickerFileType` / `withReadPermission`.
+/// API file_picker 13.x (federated): `FilePicker.pickFile()` adalah
+/// **static method** (bukan `FilePicker.platform.pickFiles`), return
+/// `PlatformFile?` (null = user batal), bytes dibaca via
+/// `file.readAsBytes()` (async, `Future<Uint8List>`).
 ///
 /// Alur tipikal:
 /// ```dart
-/// // PDF + gambar:
 /// final url = await Lampiran.pickAndUpload(
-///   type: FileType.custom,
 ///   allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
 /// );
-///
-/// // Video + audio:
-/// final url = await Lampiran.pickAndUpload(type: FileType.media);
 /// ```
 class Lampiran {
   /// Pick file dari file manager / gallery user.
   /// Return null kalau user batal.
-  ///
-  /// [type] = kategori umum (FileType.image, .video, .audio, .media,
-  /// .custom, .any). Untuk `FileType.custom`, kirim [allowedExtensions]
-  /// (list ext tanpa titik, mis. `['pdf', 'docx']`).
-  static Future<({String path, String name, String mime})?> pickFile({
-    FileType type = FileType.custom,
-    List<String> allowedExtensions = const [],
+  static Future<({String name, Uint8List bytes})?> pickFile({
+    List<String>? allowedExtensions,
   }) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: type,
-      allowedExtensions:
-          type == FileType.custom ? allowedExtensions : null,
-      withData: false,
+    final f = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
     );
-    if (result == null) return null;
-    final f = result.first;
-    final name = f.name;
-    final path = f.path ?? '';
-    if (path.isEmpty) return null; // web-only edge case, diabaikan.
-    return (path: path, name: name, mime: _guessMime(name));
+    if (f == null) return null;
+    final bytes = await f.readAsBytes();
+    return (name: f.name, bytes: bytes);
   }
 
   /// Pick + upload sekaligus. Return public URL, atau null kalau batal.
   static Future<String?> pickAndUpload({
-    FileType type = FileType.custom,
-    List<String> allowedExtensions = const [],
+    List<String>? allowedExtensions,
   }) async {
-    final picked = await pickFile(
-      type: type,
-      allowedExtensions: allowedExtensions,
-    );
+    final picked = await pickFile(allowedExtensions: allowedExtensions);
     if (picked == null) return null;
-    final bytes = File(picked.path).readAsBytesSync();
-    return await upload(bytes, picked.name, mimeType: picked.mime);
+    return await upload(picked.bytes, picked.name);
   }
 
   /// Upload bytes ke bucket, return **public URL** (simpan ke DB).
   static Future<String> upload(
-    List<int> bytes,
+    Uint8List bytes,
     String filename, {
     String? mimeType,
   }) async {
@@ -72,12 +52,12 @@ class Lampiran {
     final uid = client.auth.currentUser?.id ?? 'anon';
     final ts = DateTime.now().millisecondsSinceEpoch;
     final safe = filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-    final target = '$uid/${ts}-$safe';
+    final target = '$uid/$ts-$safe';
 
     await client.storage.from('lampiran').uploadBinary(
           target,
           bytes,
-          fileOptions: FileOptions(
+          fileOptions: supa.FileOptions(
             contentType: mimeType ?? _guessMime(filename),
             upsert: false,
           ),
