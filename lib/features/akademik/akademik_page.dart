@@ -43,7 +43,7 @@ class _AkademikPageState extends State<AkademikPage> {
               children: [
                 _KelasTab(),
                 _JadwalTab(),
-                _PresensiTab(profile: widget.profile),
+                _PresensiTab(),
                 _NilaiTab(),
               ],
             ),

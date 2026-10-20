@@ -175,9 +175,43 @@ class Repos {
 
   // ---------- PRESSENSI ----------
 
+  /// Rekap absensi per kelas dengan NIS + nama siswa (untuk ekspor XLSX/CSV).
+  static Future<QueryResult<RowData>> attendanceRekap({
+    required String classId,
+    required DateTime mulai,
+    required DateTime sampai,
+  }) async {
+    try {
+      final s =
+          '${mulai.year}-${mulai.month.toString().padLeft(2, '0')}-${mulai.day.toString().padLeft(2, '0')}';
+      final e =
+          '${sampai.year}-${sampai.month.toString().padLeft(2, '0')}-${sampai.day.toString().padLeft(2, '0')}';
+      final rows = await db
+          .from('attendance_records')
+          .select('student_user_id, tanggal, status, metode, student_profiles(nis, nama_lengkap), attendance_sessions!left(class_id)')
+          .gte('tanggal', s)
+          .lte('tanggal', e)
+          .eq('attendance_sessions.class_id', classId)
+          .order('tanggal', ascending: false)
+          .limit(2000);
+      // Saring berdasarkan keanggotaan kelas (client-side; RLS server tetap
+      // batasi baris yang boleh dibaca).
+      final siswaKelas = await classStudents(classId);
+      final idsKelas = {
+        for (final r in siswa.data) r['student_user_id'].toString()
+      };
+      return QueryResult<RowData>(data: [
+        for (final r in rows)
+          if (idsKelas.contains(r['student_user_id']?.toString()))
+            Map<String, dynamic>.from(r as Map),
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
   static Future<QueryResult<RowData>> attendance({
     String? studentId,
-    String? classId,
     DateTime? mulai,
     DateTime? sampai,
   }) async {

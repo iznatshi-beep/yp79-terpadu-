@@ -105,7 +105,7 @@ class AdminDashboard extends StatelessWidget {
                       ModulAksi(
                         label: 'Rekap Presensi',
                         icon: Icons.summarize_outlined,
-                        builder: (_) => const RekapPresensiPage(),
+                        builder: (_) => RekapPresensiPage(profile: profile),
                       ),
                     ],
                   ),

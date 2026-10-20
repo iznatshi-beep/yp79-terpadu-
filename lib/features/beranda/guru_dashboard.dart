@@ -8,6 +8,7 @@ import '../../../widgets/dashboard_widgets.dart';
 import '../../../widgets/quick_actions.dart';
 import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
+import '../akademik/rekap_presensi_page.dart';
 import '../izin/izin_page.dart';
 
 /// Dashboard Guru: kelas yang diampu + presensi + materi + tugas.
@@ -65,6 +66,11 @@ class GuruDashboard extends StatelessWidget {
                         label: 'Pengajuan Izin',
                         icon: Icons.event_busy_outlined,
                         builder: (_) => IzinPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Rekap Absen',
+                        icon: Icons.summarize_outlined,
+                        builder: (_) => RekapPresensiPage(profile: profile),
                       ),
                     ],
                   ),
