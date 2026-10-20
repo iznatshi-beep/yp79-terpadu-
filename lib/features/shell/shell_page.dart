@@ -77,7 +77,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'LMS',
           icon: Icons.menu_book_outlined,
-          builder: ({required profile}) => const LmsPage(),
+          builder: ({required profile}) => LmsPage(profile: profile),
         ),
         _TabDef(
           label: 'Ujian',
@@ -122,7 +122,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'LMS',
           icon: Icons.menu_book_outlined,
-          builder: ({required profile}) => const LmsPage(),
+          builder: ({required profile}) => LmsPage(profile: profile),
         ),
         _TabDef(
           label: 'Ujian',
@@ -152,7 +152,7 @@ class _ShellPageState extends State<ShellPage> {
         _TabDef(
           label: 'LMS',
           icon: Icons.menu_book_outlined,
-          builder: ({required profile}) => const LmsPage(),
+          builder: ({required profile}) => LmsPage(profile: profile),
         ),
         _TabDef(
           label: 'Ujian',

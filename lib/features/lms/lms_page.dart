@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/models/session_profile.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
+import 'tugas_detail_page.dart';
 
 /// Halaman LMS: materi, tugas, dan pengumpulan.
 class LmsPage extends StatefulWidget {
-  const LmsPage({super.key});
+  const LmsPage({super.key, this.profile});
+
+  final SessionProfile? profile;
 
   @override
   State<LmsPage> createState() => _LmsPageState();
@@ -47,7 +51,7 @@ class _LmsPageState extends State<LmsPage> {
         Expanded(
           child: switch (_tab) {
             0 => _MateriList(),
-            1 => _TugasList(),
+            1 => _TugasList(profile: widget.profile),
             2 => _PengumpulanList(),
             _ => const SizedBox(),
           },
@@ -175,6 +179,10 @@ class _MateriList extends StatelessWidget {
 }
 
 class _TugasList extends StatelessWidget {
+  const _TugasList({required this.profile});
+
+  final SessionProfile? profile;
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<QueryResult<Map<String, dynamic>>>(
@@ -224,6 +232,22 @@ class _TugasList extends StatelessWidget {
                         fontSize: 11.5, color: AppColors.textSecondary),
                   ),
                   trailing: StatusBadge(label: badge.$2, state: badge.$1),
+                  onTap: () {
+                    final prof = profile;
+                    if (prof == null) {
+                      showToast(context, 'Sesi belum siap. Buka ulang halaman.');
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TugasDetailPage(
+                          profile: prof,
+                          tugas: a,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             );

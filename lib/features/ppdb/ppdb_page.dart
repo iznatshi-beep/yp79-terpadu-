@@ -222,10 +222,29 @@ class _PpdbPageState extends State<PpdbPage> {
     if (id.isEmpty) return;
 
     if (['verifikasi', 'lolos', 'tidak_lolos'].contains(aksi)) {
-      final err = await Repos.ppdbSetStatus(id, aksi);
-      _pesan(err ?? 'Status diperbarui menjadi $aksi.', sukses: err == null);
+      // lolos/tidak_lolos memakai ppdb_set_hasil: selain mengubah status,
+      // mencatat hasil ke admission_results (riwayat keputusan).
+      if (aksi == 'verifikasi') {
+        final err = await Repos.ppdbSetStatus(id, 'verifikasi');
+        _pesan(err ?? 'Status diperbarui menjadi verifikasi.',
+            sukses: err == null);
+        await _muat();
+        return;
+      }
+      final yakin = await showConfirmDialog(
+        context,
+        judul: aksi == 'lolos'
+            ? 'Tetapkan hasil LOLOS?'
+            : 'Tetapkan hasil TIDAK LOLOS?',
+        pesan: 'Keputusan ini tercatat sebagai hasil akhir seleksi pendaftar.',
+        tombolYa: 'Tetapkan',
+        warnColor:
+            aksi == 'lolos' ? AppColors.success : AppColors.danger,
+      );
+      if (!yakin) return;
+      final hasil = await Repos.ppdbSetHasil(id, aksi, publikasi: false);
+      _pesan(hasil ?? 'Hasil "$aksi" ditetapkan.', sukses: hasil == null);
       await _muat();
-      return;
     }
   }
 }
