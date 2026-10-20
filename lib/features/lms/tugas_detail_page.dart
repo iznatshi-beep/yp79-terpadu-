@@ -132,7 +132,8 @@ class _FormKumpulState extends State<_FormKumpul> {
 
   Future<void> _pickFile() async {
     final picked = await Lampiran.pickFile(
-      types: const [FilePickerType.pdf, FilePickerType.image, FilePickerType.any],
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
     );
     if (picked == null || !mounted) return;
     showDialog(
@@ -148,11 +149,9 @@ class _FormKumpulState extends State<_FormKumpul> {
                     Text('Mengunggah file…'),
                   ]))),
     );
-    final url = await Lampiran.upload(
-      _bytesOf(picked.path),
-      picked.name,
-      mimeType: picked.mime,
-    );
+    final bytes = File(picked.path).readAsBytesSync();
+    final url = await Lampiran.upload(bytes, picked.name,
+        mimeType: picked.mime);
     if (!mounted) return;
     Navigator.pop(context); // tutup progress
     if (url != null && url.isNotEmpty) {
@@ -201,12 +200,6 @@ class _FormKumpulState extends State<_FormKumpul> {
       ],
     );
   }
-}
-
-/// Helper untuk baca file lokal. Dipakai di _FormKumpulState.
-List<int> _bytesOf(String path) {
-  // `dart:io` aman (app Android-only).
-  return File(path).readAsBytesSync();
 }
 
 /// Guru/admin: daftar pengumpulan untuk satu tugas + beri nilai.

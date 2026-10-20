@@ -198,7 +198,7 @@ class Repos {
       // batasi baris yang boleh dibaca).
       final siswaKelas = await classStudents(classId);
       final idsKelas = {
-        for (final r in siswa.data) r['student_user_id'].toString()
+        for (final r in siswaKelas.data) r['user_id']?.toString()
       };
       return QueryResult<RowData>(data: [
         for (final r in rows)

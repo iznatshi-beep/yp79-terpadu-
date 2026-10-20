@@ -72,7 +72,8 @@ class _MutabaahFormPageState extends State<MutabaahFormPage> {
 
   Future<void> _pickLampiran() async {
     final url = await Lampiran.pickAndUpload(
-      types: const [FilePickerType.image, FilePickerType.pdf],
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
     );
     if (url != null && mounted) {
       setState(() => _lampiranUrl = url);
@@ -211,7 +212,8 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
 
   Future<void> _pickLampiran() async {
     final url = await Lampiran.pickAndUpload(
-      types: const [FilePickerType.audio, FilePickerType.video],
+      type: FileType.custom,
+      allowedExtensions: const ['mp3', 'm4a', 'wav', 'mp4', 'mov', '3gp'],
     );
     if (url != null && mounted) {
       setState(() => _lampiranUrl = url);

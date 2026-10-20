@@ -334,7 +334,8 @@ class _FormIzinState extends State<_FormIzin> {
 
   Future<void> _pickLampiran() async {
     final picked = await Lampiran.pickFile(
-      types: const [FilePickerType.pdf, FilePickerType.image],
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
     );
     if (picked == null || !mounted) return;
     showDialog(

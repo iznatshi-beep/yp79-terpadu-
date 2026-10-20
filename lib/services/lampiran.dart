@@ -8,25 +8,40 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 ///
 /// App target: Android-only, jadi `dart:io` aman dipakai.
 ///
+/// API file_picker 13.x: `FileType` enum (image, video, audio, media,
+/// custom, any) + `allowedExtensions` untuk custom. Gak ada
+/// `FilePickerType` / `FilePickerFileType` / `withReadPermission`.
+///
 /// Alur tipikal:
 /// ```dart
+/// // PDF + gambar:
 /// final url = await Lampiran.pickAndUpload(
-///   types: const [FilePickerType.image, FilePickerType.pdf],
+///   type: FileType.custom,
+///   allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
 /// );
-/// // simpan url ke kolom `lampiran_url` / `file_url` di DB
+///
+/// // Video + audio:
+/// final url = await Lampiran.pickAndUpload(type: FileType.media);
 /// ```
 class Lampiran {
-  /// Pick file dari gallery / file manager user.
+  /// Pick file dari file manager / gallery user.
   /// Return null kalau user batal.
+  ///
+  /// [type] = kategori umum (FileType.image, .video, .audio, .media,
+  /// .custom, .any). Untuk `FileType.custom`, kirim [allowedExtensions]
+  /// (list ext tanpa titik, mis. `['pdf', 'docx']`).
   static Future<({String path, String name, String mime})?> pickFile({
-    required List<FilePickerType> types,
+    FileType type = FileType.custom,
+    List<String> allowedExtensions = const [],
   }) async {
     final result = await FilePicker.platform.pickFiles(
-      type: FilePickerFileType.custom(types),
-      withReadPermission: true,
+      type: type,
+      allowedExtensions:
+          type == FileType.custom ? allowedExtensions : null,
+      withData: false,
     );
     if (result == null) return null;
-    final f = result.files.first;
+    final f = result.first;
     final name = f.name;
     final path = f.path ?? '';
     if (path.isEmpty) return null; // web-only edge case, diabaikan.
@@ -35,11 +50,15 @@ class Lampiran {
 
   /// Pick + upload sekaligus. Return public URL, atau null kalau batal.
   static Future<String?> pickAndUpload({
-    required List<FilePickerType> types,
+    FileType type = FileType.custom,
+    List<String> allowedExtensions = const [],
   }) async {
-    final picked = await pickFile(types: types);
+    final picked = await pickFile(
+      type: type,
+      allowedExtensions: allowedExtensions,
+    );
     if (picked == null) return null;
-    final bytes = await File(picked.path).readAsBytes();
+    final bytes = File(picked.path).readAsBytesSync();
     return await upload(bytes, picked.name, mimeType: picked.mime);
   }
 
@@ -55,11 +74,13 @@ class Lampiran {
     final safe = filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final target = '$uid/${ts}-$safe';
 
-    await client.storage.from('lampiran').upload(
+    await client.storage.from('lampiran').uploadBinary(
           target,
           bytes,
-          contentType: mimeType ?? _guessMime(filename),
-          upsert: false,
+          fileOptions: FileOptions(
+            contentType: mimeType ?? _guessMime(filename),
+            upsert: false,
+          ),
         );
 
     final url = client.storage.from('lampiran').getPublicUrl(target);
@@ -97,8 +118,15 @@ class Lampiran {
         return 'application/zip';
       case 'mp3':
         return 'audio/mpeg';
+      case 'm4a':
+        return 'audio/mp4';
+      case 'wav':
+        return 'audio/wav';
       case 'mp4':
+      case 'mov':
         return 'video/mp4';
+      case '3gp':
+        return 'video/3gpp';
       default:
         return 'application/octet-stream';
     }
