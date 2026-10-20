@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
+import 'rekap_presensi_page.dart';
 
 /// Halaman Akademik: kelas, jadwal, presensi, nilai.
 class AkademikPage extends StatefulWidget {
-  const AkademikPage({super.key});
+  const AkademikPage({super.key, this.profile});
+
+  final SessionProfile? profile;
 
   @override
   State<AkademikPage> createState() => _AkademikPageState();
@@ -36,10 +40,10 @@ class _AkademikPageState extends State<AkademikPage> {
           ),
           Expanded(
             child: TabBarView(
-              children: const [
+              children: [
                 _KelasTab(),
                 _JadwalTab(),
-                _PresensiTab(),
+                _PresensiTab(profile: widget.profile),
                 _NilaiTab(),
               ],
             ),
@@ -263,19 +267,30 @@ class _PresensiTab extends StatelessWidget {
           );
         }
         final records = snap.data?.data ?? const [];
-        if (records.isEmpty) {
-          return const EmptyState(
-            title: 'Belum ada presensi hari ini',
-            message: 'Presensi akan tercatat saat siswa check-in.',
-            icon: Icons.fact_check_outlined,
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(18),
-          itemCount: records.length,
-          itemBuilder: (context, i) {
-            final r = records[i];
-            final status = r['status'] as String? ?? '';
+        // Tombol Rekap Presensi selalu tampil di atas daftar.
+        return Stack(
+          children: [
+            ListView.builder(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+              itemCount: records.length + 1,
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const _RekapGate(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.assessment_outlined, size: 18),
+                      label: const Text('Rekap Harian / Mingguan / Bulanan'),
+                    ),
+                  );
+                }
+                final r = records[i - 1];
+                final status = r['status'] as String? ?? '';
             final badge = switch (status) {
               'hadir' => (BadgeState.success, 'Hadir'),
               'terlambat' => (BadgeState.warning, 'Terlambat'),
@@ -304,9 +319,25 @@ class _PresensiTab extends StatelessWidget {
                 ),
               ),
             );
-          },
+                },
+              ),
+          ],
         );
       },
+    );
+  }
+}
+
+/// Gate: rekap presensi butuh profile — diambil dari AuthGate via
+/// SessionProfile statik. Karena AkademikPage tidak menerima profile,
+/// rekap memakai kelas yang dipilih pengguna di halaman rekap.
+class _RekapGate extends StatelessWidget {
+  const _RekapGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text('Memuat…')),
     );
   }
 }

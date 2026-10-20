@@ -8,6 +8,7 @@ import '../../../widgets/dashboard_widgets.dart';
 import '../../../widgets/quick_actions.dart';
 import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
+import '../akademik/rekap_presensi_page.dart';
 import '../admin/broadcast_page.dart';
 import '../admin/manajemen_pengguna_page.dart';
 import '../admin/gps_bus_page.dart';
@@ -100,6 +101,11 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Data Siswa',
                         icon: Icons.groups_2_rounded,
                         builder: (_) => const MasterSiswaPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Rekap Presensi',
+                        icon: Icons.summarize_outlined,
+                        builder: (_) => const RekapPresensiPage(),
                       ),
                     ],
                   ),

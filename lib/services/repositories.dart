@@ -182,18 +182,22 @@ class Repos {
     DateTime? sampai,
   }) async {
     try {
-      final q = _filter(
-        'attendance_records',
-        orderCol: 'tanggal',
-        ascending: false,
-        limit: 200,
-      );
-      if (studentId != null) q.eq('student_user_id', studentId);
+      // Filter kelas: attendance_records tidak punya class_id; terhubung lewat
+      // attendance_sessions.class_id. Embed session supaya filter berlaku.
+      dynamic q = db
+          .from('attendance_records')
+          .select('*, attendance_sessions!left(class_id)')
+          .order('tanggal', ascending: false)
+          .limit(500);
+      if (studentId != null) q = q.eq('student_user_id', studentId);
+      if (classId != null) {
+        q = q.eq('attendance_sessions.class_id', classId);
+      }
       if (mulai != null) {
-        q.gte('tanggal', mulai.toIso8601String().substring(0, 10));
+        q = q.gte('tanggal', mulai.toIso8601String().substring(0, 10));
       }
       if (sampai != null) {
-        q.lte('tanggal', sampai.toIso8601String().substring(0, 10));
+        q = q.lte('tanggal', sampai.toIso8601String().substring(0, 10));
       }
       final rows = await q;
       return QueryResult<RowData>(data: [
