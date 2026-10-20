@@ -1,7 +1,10 @@
+import 'dart:io' show File;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/session_profile.dart';
 import '../../core/theme.dart';
+import '../../services/lampiran.dart';
 import '../../services/repositories.dart';
 import '../../widgets/app_states.dart';
 import '../../widgets/common.dart';
@@ -90,6 +93,8 @@ class _FormKumpul extends StatefulWidget {
 class _FormKumpulState extends State<_FormKumpul> {
   final _jawaban = TextEditingController();
   bool _sibuk = false;
+  String? _fileUrl;
+  String? _fileName;
 
   @override
   void dispose() {
@@ -98,9 +103,9 @@ class _FormKumpulState extends State<_FormKumpul> {
   }
 
   Future<void> _kumpul() async {
-    if (_jawaban.text.trim().isEmpty) {
+    if (_jawaban.text.trim().isEmpty && _fileUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Tulis jawaban dulu.'),
+          content: Text('Tulis jawaban atau lampirkan file dulu.'),
           backgroundColor: AppColors.danger));
       return;
     }
@@ -108,7 +113,9 @@ class _FormKumpulState extends State<_FormKumpul> {
     final ok = await Repos.submitAssignment(
       assignmentId: widget.assignmentId,
       studentId: widget.studentId,
-      jawaban: _jawaban.text.trim(),
+      jawaban: _jawaban.text.trim().isEmpty ? null : _jawaban.text.trim(),
+      fileUrl: _fileUrl,
+      fileName: _fileName,
     );
     if (!mounted) return;
     setState(() => _sibuk = false);
@@ -120,6 +127,41 @@ class _FormKumpulState extends State<_FormKumpul> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Gagal mengumpulkan. Coba lagi.'),
           backgroundColor: AppColors.danger));
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final picked = await Lampiran.pickFile(
+      types: const [FilePickerType.pdf, FilePickerType.image, FilePickerType.any],
+    );
+    if (picked == null || !mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Dialog(
+          child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text('Mengunggah file…'),
+                  ]))),
+    );
+    final url = await Lampiran.upload(
+      _bytesOf(picked.path),
+      picked.name,
+      mimeType: picked.mime,
+    );
+    if (!mounted) return;
+    Navigator.pop(context); // tutup progress
+    if (url != null && url.isNotEmpty) {
+      setState(() {
+        _fileUrl = url;
+        _fileName = picked.name;
+      });
+    } else {
+      showToast(context, 'Gagal upload file.', color: AppColors.danger);
     }
   }
 
@@ -137,6 +179,14 @@ class _FormKumpulState extends State<_FormKumpul> {
             alignLabelWithHint: true,
           ),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _sibuk ? null : _pickFile,
+          icon: const Icon(Icons.attach_file_rounded),
+          label: Text(_fileName != null
+              ? 'Lampiran: $_fileName ✓'
+              : 'Lampirkan file (PDF/foto/dokumen) — opsional'),
+        ),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _sibuk ? null : _kumpul,
@@ -151,6 +201,12 @@ class _FormKumpulState extends State<_FormKumpul> {
       ],
     );
   }
+}
+
+/// Helper untuk baca file lokal. Dipakai di _FormKumpulState.
+List<int> _bytesOf(String path) {
+  // `dart:io` aman (app Android-only).
+  return File(path).readAsBytesSync();
 }
 
 /// Guru/admin: daftar pengumpulan untuk satu tugas + beri nilai.

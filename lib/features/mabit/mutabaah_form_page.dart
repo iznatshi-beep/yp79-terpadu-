@@ -1,7 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/session_profile.dart';
 import '../../core/theme.dart';
+import '../../services/lampiran.dart';
 import '../../services/repositories.dart';
 import '../../widgets/app_states.dart';
 import '../../widgets/common.dart';
@@ -41,25 +43,40 @@ class _MutabaahFormPageState extends State<MutabaahFormPage> {
     };
   }
 
+  String? _lampiranUrl;
+
   Future<void> _simpan() async {
     setState(() => _sibuk = true);
     try {
       final today = DateTime.now().toIso8601String().substring(0, 10);
       // Upsert: kalau sudah ada baris hari ini, timpa checklist-nya.
+      // Lampiran (foto/PDF) disimpan ke kolom `lampiran_url`.
       await Repos.db.from('mutabaah_entries').upsert({
         'student_user_id': widget.profile.studentId ?? widget.profile.sub ?? '',
         'tanggal': today,
         'checklist': _ceklis,
         'diverifikasi': false,
+        if (_lampiranUrl != null) 'lampiran_url': _lampiranUrl,
       }, onConflict: 'student_user_id,tanggal');
       if (!mounted) return;
-      showToast(context, 'Mutabaah hari ini tersimpan.', color: AppColors.success);
+      showToast(context, 'Mutabaah hari ini tersimpan.',
+          color: AppColors.success);
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       showToast(context, 'Gagal menyimpan: $e', color: AppColors.danger);
     } finally {
       if (mounted) setState(() => _sibuk = false);
+    }
+  }
+
+  Future<void> _pickLampiran() async {
+    final url = await Lampiran.pickAndUpload(
+      types: const [FilePickerType.image, FilePickerType.pdf],
+    );
+    if (url != null && mounted) {
+      setState(() => _lampiranUrl = url);
+      showToast(context, 'Lampiran terpasang ✓', color: AppColors.success);
     }
   }
 
@@ -109,6 +126,14 @@ class _MutabaahFormPageState extends State<MutabaahFormPage> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   ),
                 const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _sibuk ? null : _pickLampiran,
+                  icon: const Icon(Icons.attach_file_rounded),
+                  label: Text(_lampiranUrl != null
+                      ? 'Lampiran terpasang ✓'
+                      : 'Lampirkan (foto/PDF) — opsional'),
+                ),
+                const SizedBox(height: 12),
                 FilledButton(
                   onPressed: _sibuk ? null : _simpan,
                   child: _sibuk
@@ -147,6 +172,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
   final _capaian = TextEditingController();
   final _catatan = TextEditingController();
   bool _sibuk = false;
+  String? _lampiranUrl;
 
   @override
   void dispose() {
@@ -169,6 +195,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
         'catatan':
             _catatan.text.trim().isEmpty ? null : _catatan.text.trim(),
         'status': 'menunggu',
+        if (_lampiranUrl != null) 'lampiran_url': _lampiranUrl,
       });
       if (!mounted) return;
       showToast(context, 'Setoran dikirim. Menunggu verifikasi guru.',
@@ -179,6 +206,16 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
       showToast(context, 'Gagal mengirim: $e', color: AppColors.danger);
     } finally {
       if (mounted) setState(() => _sibuk = false);
+    }
+  }
+
+  Future<void> _pickLampiran() async {
+    final url = await Lampiran.pickAndUpload(
+      types: const [FilePickerType.audio, FilePickerType.video],
+    );
+    if (url != null && mounted) {
+      setState(() => _lampiranUrl = url);
+      showToast(context, 'Audio/video terpasang ✓', color: AppColors.success);
     }
   }
 
@@ -207,6 +244,14 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
                 labelText: 'Catatan (opsional)',
                 hintText: 'Kesulitan, bimbingan yang dibutuhkan, dll.',
               ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _sibuk ? null : _pickLampiran,
+              icon: const Icon(Icons.attach_file_rounded),
+              label: Text(_lampiranUrl != null
+                  ? 'Audio/video terpasang ✓'
+                  : 'Lampirkan audio/video (opsional)'),
             ),
             const SizedBox(height: 16),
             FilledButton(

@@ -62,5 +62,8 @@ local.properties
 # Node
 node_modules/
 push-notifier/push_log.db
+# Kredensial lokal
 .secrets/
 *.token
+
+# Upload sementara (dihapus saat app mulai)

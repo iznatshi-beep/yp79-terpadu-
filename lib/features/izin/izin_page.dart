@@ -1,8 +1,13 @@
+import 'dart:io' show File;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/models/role.dart';
 import '../../../core/models/session_profile.dart';
 import '../../../core/theme.dart';
+import '../../../services/lampiran.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
@@ -137,6 +142,15 @@ class _IzinPageState extends State<IzinPage> {
     }
   }
 
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      showToast(context, 'Gagal membuka file.', color: AppColors.danger);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -231,7 +245,28 @@ class _IzinPageState extends State<IzinPage> {
                         fontSize: 12, color: AppColors.textPrimary),
                   ),
                 ],
-                if (_staf && status == 'diajukan') ...[
+                if (z['lampiran_url'] != null &&
+                (z['lampiran_url']?.toString().isNotEmpty ?? false)) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () =>
+                    _launchUrl(z['lampiran_url']?.toString() ?? ''),
+                child: Row(
+                  children: [
+                    const Icon(Icons.attach_file_rounded, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Lihat lampiran',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (_staf && status == 'diajukan') ...[
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -279,6 +314,8 @@ class _FormIzinState extends State<_FormIzin> {
   DateTime? _selesai;
   final _alasan = TextEditingController();
   bool _kirim = false;
+  String? _lampiranUrl;
+  String? _lampiranNama;
 
   @override
   void initState() {
@@ -294,6 +331,39 @@ class _FormIzinState extends State<_FormIzin> {
 
   String _fmt(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickLampiran() async {
+    final picked = await Lampiran.pickFile(
+      types: const [FilePickerType.pdf, FilePickerType.image],
+    );
+    if (picked == null || !mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Dialog(
+          child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text('Mengunggah lampiran…'),
+                  ]))),
+    );
+    final bytes = File(picked.path).readAsBytesSync();
+    final url =
+        await Lampiran.upload(bytes, picked.name, mimeType: picked.mime);
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (url != null && url.isNotEmpty) {
+      setState(() {
+        _lampiranUrl = url;
+        _lampiranNama = picked.name;
+      });
+    } else {
+      showToast(context, 'Gagal upload lampiran.', color: AppColors.danger);
+    }
+  }
 
   Future<void> _pilihTanggal(bool mulai) async {
     final t = await showDatePicker(
@@ -327,6 +397,7 @@ class _FormIzinState extends State<_FormIzin> {
       selesai: _selesai == null ? null : _fmt(_selesai!),
       jenis: _jenis,
       alasan: _alasan.text.trim(),
+      lampiranUrl: _lampiranUrl,
     );
     if (!mounted) return;
     setState(() => _kirim = false);
@@ -420,6 +491,20 @@ class _FormIzinState extends State<_FormIzin> {
                 labelText: 'Alasan',
                 hintText: 'Contoh: demam, ada surat dokter',
               ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _kirim ? null : _pickLampiran,
+              icon: _kirim
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.primary))
+                  : const Icon(Icons.attach_file_rounded, size: 16),
+              label: Text(_lampiranNama != null
+                  ? 'Lampiran: $_lampiranNama ✓'
+                  : 'Lampirkan surat dokter / bukti (opsional)'),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

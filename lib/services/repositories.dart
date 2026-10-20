@@ -329,6 +329,7 @@ class Repos {
     String? selesai,
     required String jenis,
     required String alasan,
+    String? lampiranUrl,
   }) async {
     try {
       await db.from('leave_requests').insert({
@@ -338,6 +339,7 @@ class Repos {
         'selesai': selesai,
         'jenis': jenis,
         'alasan': alasan,
+        if (lampiranUrl != null) 'lampiran_url': lampiranUrl,
         'status': 'diajukan',
       });
       return true;
