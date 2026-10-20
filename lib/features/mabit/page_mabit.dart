@@ -305,7 +305,7 @@ class _MutabaahTab extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
+                  );
                 },
               ),
             Positioned(
