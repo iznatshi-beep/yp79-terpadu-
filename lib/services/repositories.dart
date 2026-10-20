@@ -986,13 +986,26 @@ class Repos {
   /// Daftar siswa (untuk menghubungkan akun orang tua ke anak).
   static Future<QueryResult<RowData>> listSiswa() async {
     try {
+      // kelas_id diambil dari student_profiles supaya halaman Data Siswa
+      // bisa menampilkan kelas tiap siswa.
       final rows = await db
           .from('profiles')
-          .select('id, nama, email')
+          .select('id, nama, email, student_profiles(kelas_id)')
           .eq('role', 'siswa')
           .order('nama');
       return QueryResult<RowData>(
-        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        data: [
+          for (final r in rows)
+            {
+              'id': r['id'],
+              'nama': r['nama'],
+              'email': r['email'],
+              'kelas_id': (r['student_profiles'] is Map &&
+                      (r['student_profiles'] as Map)['kelas_id'] != null)
+                  ? (r['student_profiles'] as Map)['kelas_id']
+                  : null,
+            },
+        ],
         total: rows.length,
       );
     } catch (e) {

@@ -12,6 +12,7 @@ import '../admin/broadcast_page.dart';
 import '../admin/manajemen_pengguna_page.dart';
 import '../admin/gps_bus_page.dart';
 import '../admin/master_data_page.dart';
+import '../admin/master_siswa_page.dart';
 import '../ppdb/ppdb_page.dart';
 import '../izin/izin_page.dart';
 
@@ -94,6 +95,11 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Data Master',
                         icon: Icons.domain_outlined,
                         builder: (_) => const MasterDataPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Data Siswa',
+                        icon: Icons.groups_2_rounded,
+                        builder: (_) => const MasterSiswaPage(),
                       ),
                     ],
                   ),

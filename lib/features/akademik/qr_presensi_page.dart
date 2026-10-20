@@ -22,11 +22,24 @@ class QrPresensiPage extends StatefulWidget {
 class _QrPresensiPageState extends State<QrPresensiPage> {
   String? _uid;
   String? _nama;
+  String? _nis;
   String? _token;
   bool _sibuk = false;
   String? _error;
+  String _cari = '';
 
-  Future<void> _generate(String userId, String nama) async {
+  List<Map<String, dynamic>> get _terfilter {
+    final q = _cari.trim().toLowerCase();
+    if (q.isEmpty) return widget.siswa;
+    return [
+      for (final s in widget.siswa)
+        if ((s['nama']?.toString().toLowerCase().contains(q) ?? false) ||
+            (s['nis']?.toString().toLowerCase().contains(q) ?? false))
+          s
+    ];
+  }
+
+  Future<void> _generate(String userId, String nama, String nis) async {
     setState(() {
       _sibuk = true;
       _error = null;
@@ -43,6 +56,7 @@ class _QrPresensiPageState extends State<QrPresensiPage> {
     setState(() {
       _uid = userId;
       _nama = nama;
+      _nis = nis;
       _token = token;
       _sibuk = false;
     });
@@ -67,24 +81,47 @@ class _QrPresensiPageState extends State<QrPresensiPage> {
     if (_error != null) {
       return Center(child: Text(_error!));
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(18),
-      itemCount: widget.siswa.length,
-      itemBuilder: (context, i) {
-        final s = widget.siswa[i];
-        final uid = s['user_id']?.toString() ??
-            s['student_user_id']?.toString() ??
-            '';
-        return ListTile(
-          leading: const Icon(Icons.person_outline),
-          title: Text(s['nama']?.toString() ?? '-'),
-          subtitle: const Text('Ketuk untuk buat QR presensi',
-              style: TextStyle(
-                  fontSize: 11.5, color: AppColors.textSecondary)),
-          onTap:
-              _sibuk ? null : () => _generate(uid, s['nama']?.toString() ?? '-'),
-        );
-      },
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+          child: TextField(
+            onChanged: (v) => setState(() => _cari = v),
+            decoration: const InputDecoration(
+              hintText: 'Cari NIS atau nama siswa',
+              prefixIcon: Icon(Icons.search_rounded),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+            itemCount: _terfilter.length,
+            itemBuilder: (context, i) {
+              final s = _terfilter[i];
+              final uid = s['user_id']?.toString() ??
+                  s['student_user_id']?.toString() ??
+                  '';
+              final nis = s['nis']?.toString() ?? '';
+              return ListTile(
+                leading: Text(nis.isEmpty ? '—' : nis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.primary)),
+                title: Text(s['nama']?.toString() ?? '-'),
+                subtitle: const Text('Ketuk untuk buat QR presensi',
+                    style: TextStyle(
+                        fontSize: 11.5, color: AppColors.textSecondary)),
+                onTap: _sibuk
+                    ? null
+                    : () =>
+                        _generate(uid, s['nama']?.toString() ?? '-', nis),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -98,6 +135,10 @@ class _QrPresensiPageState extends State<QrPresensiPage> {
             Text('Presensi QR — $_nama',
                 style:
                     const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            if (_nis?.isNotEmpty ?? false)
+              Text('NIS $_nis',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             Container(
               color: Colors.white,
@@ -119,7 +160,7 @@ class _QrPresensiPageState extends State<QrPresensiPage> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed:
-                  _sibuk ? null : () => _generate(_uid!, _nama ?? ''),
+                  _sibuk ? null : () => _generate(_uid!, _nama ?? '', _nis ?? ''),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Buat ulang token'),
             ),

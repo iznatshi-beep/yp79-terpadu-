@@ -300,6 +300,7 @@ class _PresensiInputPageState extends State<PresensiInputPage> {
                                     'user_id':
                                         s['student_user_id']?.toString() ?? '',
                                     'nama': _namaSiswa(s),
+                                    'nis': _nisSiswa(s),
                                   },
                               ],
                             ),
