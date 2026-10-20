@@ -212,6 +212,7 @@ class Repos {
 
   static Future<QueryResult<RowData>> attendance({
     String? studentId,
+    String? classId,
     DateTime? mulai,
     DateTime? sampai,
   }) async {
