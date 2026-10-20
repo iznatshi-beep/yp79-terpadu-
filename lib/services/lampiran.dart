@@ -5,12 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 /// Upload file ke Supabase Storage bucket `lampiran` (publik-read).
 ///
 /// App target: Android-only, tapi tidak pakai `dart:io` —
-/// `PlatformFile.readAsBytes()` dari file_picker 13.x cukup.
+/// `withData: true` bikin `PlatformFile.bytes` (Uint8List) terisi langsung.
 ///
-/// API file_picker 13.x (federated): `FilePicker.pickFile()` adalah
-/// **static method** (bukan `FilePicker.platform.pickFiles`), return
-/// `PlatformFile?` (null = user batal), bytes dibaca via
-/// `file.readAsBytes()` (async, `Future<Uint8List>`).
+/// API file_picker 11.x: `FilePicker.pickFiles()` adalah **static method**
+/// (bukan `FilePicker.platform.pickFiles`), return `FilePickerResult?`
+/// (null = user batal), bytes via `result.files.first.bytes`
+/// (wajib `withData: true`).
 ///
 /// Alur tipikal:
 /// ```dart
@@ -24,12 +24,15 @@ class Lampiran {
   static Future<({String name, Uint8List bytes})?> pickFile({
     List<String>? allowedExtensions,
   }) async {
-    final f = await FilePicker.pickFile(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: allowedExtensions,
+      withData: true, // wajib: isi PlatformFile.bytes
     );
-    if (f == null) return null;
-    final bytes = await f.readAsBytes();
+    if (result == null || result.files.isEmpty) return null;
+    final f = result.files.first;
+    final bytes = f.bytes;
+    if (bytes == null) return null;
     return (name: f.name, bytes: bytes);
   }
 
