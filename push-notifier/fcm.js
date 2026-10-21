@@ -223,6 +223,43 @@ async function main() {
     }
   }
 
+  // ================= 4. PENGUMUMAN (announcements dipublikasikan) ==========
+  // Broadcast dari admin: kolom target_penerbitan = semua/siswa/guru/
+  // orang_tua/admin. Idempotent via event_key `pengumuman_<id>`.
+  const anns = await supa(
+    'announcements?select=id,judul,isi,target_penerbitan,status,dipublikasikan_pada' +
+      '&status=eq.dipublikasikan&order=dipublikasikan_pada.desc&limit=20'
+  );
+  for (const a of anns) {
+    // Hanya pengumuman maksimal 7 hari — jangan spam token lama.
+    const umur = Date.now() - new Date(a.dipublikasikan_pada).getTime();
+    if (umur > 7 * 24 * 3600 * 1000) continue;
+    const eventKey = `pengumuman_${a.id}`;
+    const title = a.judul || 'Pengumuman';
+    const body = (a.isi || '').substring(0, 120);
+    const data = { type: 'pengumuman', id: String(a.id) };
+
+    const roles = TARGET_ROLES[a.target_penerbitan] ?? TARGET_ROLES.semua;
+    let sent = 0;
+    for (const p of allProfiles) {
+      if (roles && !roles.includes(p.role)) continue;
+      const toks = tokensByUser.get(p.id) || [];
+      for (const tk of toks) {
+        if (log.has(tk, eventKey)) continue;
+        try {
+          await messaging.send({ token: tk, notification: { title, body }, data });
+          log.mark(tk, eventKey);
+          sent++;
+        } catch (e) {
+          console.error(`[fcm] pengumuman gagal:`, e.message);
+        }
+      }
+    }
+    if (sent > 0) {
+      console.log(`[fcm] pengumuman ${a.id} (${a.target_penerbitan}) → ${sent} device`);
+    }
+  }
+
   console.log('[fcm] done');
 }
 
