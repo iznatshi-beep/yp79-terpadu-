@@ -359,13 +359,11 @@ class _ExamDetailPageState extends State<_ExamDetailPage> {
       showToast(context, 'Ujian tidak valid.', color: AppColors.danger);
       return;
     }
-    final durasi = (widget.exam['durasi_menit'] as num?)?.toInt() ?? 60;
     final hasil = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => ExamTakePage(
           examId: _examId,
           judul: widget.exam['judul']?.toString() ?? 'Ujian',
-          durasiMenit: durasi,
         ),
       ),
     );
