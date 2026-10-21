@@ -514,12 +514,6 @@ class _FormIzinState extends State<_FormIzin> {
                   : const Icon(Icons.send_rounded, size: 18),
               label: const Text('Kirim Pengajuan'),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Lampiran surat dokter belum tersedia: upload file (Supabase '
-              'Storage) belum dikonfigurasi pada versi ini.',
-              style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-            ),
           ],
         ),
       ),
