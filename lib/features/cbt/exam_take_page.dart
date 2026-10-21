@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme.dart';
 import '../../../services/cbt_store.dart';
+import '../../../services/exam_kiosk.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
@@ -82,6 +83,10 @@ class _ExamTakePageState extends State<ExamTakePage>
     for (final c in _essayCtrl.values) {
       c.dispose();
     }
+    ExamKiosk.alarmStop();
+    ExamKiosk.setSecure(false);
+    ExamKiosk.exitKiosk();
+    ExamKiosk.detach();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -133,6 +138,16 @@ class _ExamTakePageState extends State<ExamTakePage>
     if (sesi.soal.isNotEmpty) {
       _startTimer();
       _startFlush();
+      // Mode ujian native: FLAG_SECURE + immersive + soft kiosk.
+      await ExamKiosk.setSecure(true);
+      await ExamKiosk.enterKiosk();
+      ExamKiosk.onIntrusion(() {
+        if (!mounted || _submitting) return;
+        _pelanggaran++;
+        CbtApi.pelanggaran(_attemptId!);
+        ExamKiosk.alarmStart();
+        if (_pelanggaran > _penaltyLimit) _submit(otomatis: true);
+      });
     }
   }
 
@@ -258,6 +273,12 @@ class _ExamTakePageState extends State<ExamTakePage>
 
     await _store.clear();
     _flushTimer?.cancel();
+    _timer?.cancel();
+    // Keluar mode ujian + matikan alarm.
+    await ExamKiosk.alarmStop();
+    await ExamKiosk.setSecure(false);
+    await ExamKiosk.exitKiosk();
+    ExamKiosk.detach();
     if (!mounted) return;
     Navigator.of(context).pop(
       otomatis
