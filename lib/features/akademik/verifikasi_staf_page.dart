@@ -72,12 +72,11 @@ class _TabIzinState extends State<_TabIzin> {
   }
 
   Future<void> _putuskan(RowData z, String status) async {
-    final err = await Repos.decideLeave(
+    final ok = await Repos.decideLeave(
         id: z['id']?.toString() ?? '', status: status);
     if (!mounted) return;
-    showToast(context,
-        err ?? (status == 'disetujui' ? 'Izin disetujui.' : 'Izin ditolak.'),
-        color: err == null ? AppColors.success : AppColors.danger);
+    showToast(context, ok ? 'Keputusan tersimpan.' : 'Gagal menyimpan.',
+        color: ok ? AppColors.success : AppColors.danger);
     _muat();
   }
 
@@ -121,13 +120,12 @@ class _TabIzinState extends State<_TabIzin> {
                     icon: const Icon(Icons.close_rounded,
                         color: AppColors.danger),
                     onPressed: () async {
-                      final err = await Repos.decideLeave(
+                      final ok = await Repos.decideLeave(
                           id: z['id']?.toString() ?? '', status: 'ditolak');
                       if (!mounted) return;
-                      showToast(context, err ?? 'Izin ditolak.',
-                          color: err == null
-                              ? AppColors.success
-                              : AppColors.danger);
+                      showToast(context,
+                          ok ? 'Izin ditolak.' : 'Gagal menyimpan.',
+                          color: ok ? AppColors.success : AppColors.danger);
                       _muat();
                     },
                   ),
@@ -135,13 +133,13 @@ class _TabIzinState extends State<_TabIzin> {
                     icon: const Icon(Icons.check_circle_outline_rounded,
                         color: AppColors.success),
                     onPressed: () async {
-                      final err = await Repos.decideLeave(
+                      final ok = await Repos.decideLeave(
                           id: z['id']?.toString() ?? '',
                           status: 'disetujui');
                       if (!mounted) return;
                       showToast(context,
-                          err ?? 'Izin disetujui.',
-                          color: err == null
+                          ok ? 'Izin disetujui.' : 'Gagal menyimpan.',
+                          color: ok
                               ? AppColors.success
                               : AppColors.danger);
                       _muat();
@@ -204,21 +202,19 @@ class _TabMutabaahState extends State<_TabMutabaah> {
         itemCount: _entries.length,
         itemBuilder: (context, i) {
           final m = _entries[i];
-          final ceklis = (m['checklist'] as Map?) ?? {};
-          final terisi = m['checklist'] is Map
-              ? (m['checklist'] as Map)
-                  .values
-                  .where((v) => v == true)
-                  .length
-              : 0;
+          final ceklis = m['checklist'] is Map
+              ? m['checklist'] as Map
+              : <dynamic, dynamic>{};
+          final terisi =
+              ceklis.values.where((v) => v == true).length;
           final diverifikasi = m['diverifikasi'] == true;
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
-              title: Text('Siswa: ${m['student_user_id']?.toString().substring(0, 8)}…',
+              title: Text('Siswa: ${(m['student_user_id']?.toString() ?? '').substring(0, 8)}…',
                   style: const TextStyle(fontSize: 13)),
               subtitle: Text(
-                  '$terisi dari ${m['checklist']?.length ?? 0} ibadah tercentang',
+                  '$terisi dari ${ceklis.length} ibadah tercentang',
                   style: const TextStyle(
                       fontSize: 11.5, color: AppColors.textSecondary)),
               trailing: diverifikasi
@@ -240,8 +236,8 @@ class _TabMutabaahState extends State<_TabMutabaah> {
                     ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

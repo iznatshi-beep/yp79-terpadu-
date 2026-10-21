@@ -157,6 +157,14 @@ class _LegerNilaiPageState extends State<LegerNilaiPage> {
     );
   }
 
+  Widget _tabel() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
+      itemCount: _data.length,
+      itemBuilder: (context, i) => _row(_data[i]),
+    );
+  }
+
   Widget _row(Map<String, dynamic> r) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
