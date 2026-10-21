@@ -312,11 +312,10 @@ class _MateriPageState extends State<MateriPage> {
       ),
     );
     if (hapus != true) return;
+    final id = d['id']?.toString();
+    if (id == null) return;
     try {
-      await Repos.db
-          .from('learning_materials')
-          .delete()
-          .eq('id', d['id']?.toString());
+      await Repos.db.from('learning_materials').delete().eq('id', id);
       _muatDrafts();
       showToast(context, 'Materi dihapus.', color: AppColors.success);
     } catch (e) {
@@ -325,11 +324,13 @@ class _MateriPageState extends State<MateriPage> {
   }
 
   Future<void> _terbitkan(RowData d) async {
+    final id = d['id']?.toString();
+    if (id == null) return;
     try {
       await Repos.db
           .from('learning_materials')
           .update({'dipublikasikan': true})
-          .eq('id', d['id']?.toString());
+          .eq('id', id);
       _muatDrafts();
       if (context.mounted) {
         showToast(context, '"${d['judul']}" diterbitkan ✓',
