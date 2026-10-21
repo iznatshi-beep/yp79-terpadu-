@@ -4,7 +4,6 @@ import '../../core/models/session_profile.dart';
 import '../../core/theme.dart';
 import '../../services/repositories.dart';
 import '../../widgets/common.dart';
-import '../../widgets/dashboard_widgets.dart';
 
 /// Halaman appointment (jadwal pertemuan ortu-guru):
 /// - Ortu: ajukan janji temu ke guru
@@ -21,7 +20,6 @@ class AppointmentPage extends StatefulWidget {
 class _AppointmentPageState extends State<AppointmentPage> {
   bool _dataDimuat = true;
   final _items = <RowData>[];
-  String? _statusFilter;
 
   // Ajukan (ortu)
   bool _tampilAjukan = false;
@@ -389,7 +387,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   Widget _buildFormAjukan() {
-    final uid = Repos.uid;
     // Muat daftar guru
     return Card(
       margin: const EdgeInsets.all(18),
