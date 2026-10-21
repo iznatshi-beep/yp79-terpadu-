@@ -7,6 +7,8 @@ import '../../../widgets/app_states.dart';
 import '../../../widgets/dashboard_widgets.dart';
 import '../../../widgets/quick_actions.dart';
 import '../izin/izin_page.dart';
+import '../izin/consent_page.dart';
+import '../izin/appointment_page.dart';
 
 /// Dashboard Orang Tua: memilih anak → presensi + nilai + pembiayaan anak.
 class OrangTuaDashboard extends StatelessWidget {
@@ -114,6 +116,17 @@ class _AnakListState extends State<_AnakList> {
                         label: 'Ajukan Izin',
                         icon: Icons.event_busy_outlined,
                         builder: (_) => IzinPage(profile: widget.profile),
+                      ),
+                      ModulAksi(
+                        label: 'Persetujuan Ortu',
+                        icon: Icons.fact_check_outlined,
+                        builder: (_) => ConsentPage(profile: widget.profile),
+                      ),
+                      ModulAksi(
+                        label: 'Jadwal Pertemuan',
+                        icon: Icons.schedule_send_outlined,
+                        builder: (_) =>
+                            AppointmentPage(profile: widget.profile),
                       ),
                     ],
                   ),

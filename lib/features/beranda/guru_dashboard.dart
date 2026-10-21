@@ -14,6 +14,8 @@ import '../akademik/verifikasi_staf_page.dart';
 import '../cbt/kelola_exam_page.dart';
 import '../izin/izin_page.dart';
 import '../lms/materi_page.dart';
+import '../izin/consent_page.dart';
+import '../izin/appointment_page.dart';
 
 /// Dashboard Guru: kelas yang diampu + presensi + materi + tugas.
 class GuruDashboard extends StatelessWidget {
@@ -95,6 +97,18 @@ class GuruDashboard extends StatelessWidget {
                         label: 'Terbitkan Materi',
                         icon: Icons.cloud_upload_outlined,
                         builder: (_) => const MateriPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Jadwal Pertemuan',
+                        icon: Icons.schedule_send_outlined,
+                        builder: (_) =>
+                            AppointmentPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Persetujuan Ortu',
+                        icon: Icons.handshake_outlined,
+                        builder: (_) =>
+                            ConsentPage(profile: profile),
                       ),
                     ],
                   ),

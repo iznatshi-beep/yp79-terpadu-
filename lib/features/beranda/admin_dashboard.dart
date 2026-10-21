@@ -21,6 +21,8 @@ import '../admin/master_siswa_page.dart';
 import '../ppdb/ppdb_page.dart';
 import '../izin/izin_page.dart';
 import '../lms/materi_page.dart';
+import '../izin/consent_page.dart';
+import '../izin/appointment_page.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
 class AdminDashboard extends StatelessWidget {
@@ -96,6 +98,18 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Terbitkan Materi',
                         icon: Icons.cloud_upload_outlined,
                         builder: (_) => const MateriPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Jadwal Pertemuan',
+                        icon: Icons.schedule_send_outlined,
+                        builder: (_) =>
+                            AppointmentPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Persetujuan Ortu',
+                        icon: Icons.handshake_outlined,
+                        builder: (_) =>
+                            ConsentPage(profile: profile),
                       ),
                       ModulAksi(
                         label: 'Bus & GPS',
