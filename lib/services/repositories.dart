@@ -896,6 +896,161 @@ class Repos {
     }
   }
 
+  // ---------- LEGER NILAI (gabungan tugas + CBT + manual) ----------
+
+  /// Leger nilai satu kelas per mapel: gabungan nilai tugas (rata-rata
+  /// assignment_submissions), CBT (exam_attempts terbaik), dan input manual
+  /// (grading_records). Dipakai guru/admin untuk rekap + ekspor.
+  static Future<List<Map<String, dynamic>>> legerKelas({
+    required String classId,
+    String? subjectId,
+  }) async {
+    final hasil = <Map<String, dynamic>>[];
+    try {
+      // 1) Siswa kelas ini.
+      final siswa = await classStudents(classId);
+      for (final s in siswa.data) {
+        final uid = s['student_user_id']?.toString() ?? '';
+        final nama =
+            s['student_profiles']?['nama_lengkap']?.toString() ?? '-';
+        final nis = s['student_profiles']?['nis']?.toString() ?? '-';
+        if (uid.isEmpty) continue;
+
+        // 2) Nilai tugas: rata-rata dari assignment_submissions.
+        double? rataTugas;
+        try {
+          final subs = await db
+              .from('assignment_submissions')
+              .select('nilai, assignment_id!inner(assignments:class_id)')
+              .eq('student_user_id', uid);
+          final nilais = [
+            for (final r in subs)
+              if (r['nilai'] is num) (r['nilai'] as num).toDouble(),
+          ];
+          if (nilais.isNotEmpty) {
+            rataTugas = nilais.reduce((a, b) => a + b) / nilais.length;
+          }
+        } catch (_) {}
+
+        // 3) Nilai CBT: attempt terbaik (nilai maksimum).
+        double? nilaiCbt;
+        try {
+          final attempts = await db
+              .from('exam_attempts')
+              .select('nilai_pilihan, total_skor')
+              .eq('student_user_id', uid)
+              .neq('status', 'berlangsung')
+              .order('nilai_pilihan', ascending: false)
+              .limit(1);
+          if (attempts.isNotEmpty) {
+            final n = attempts.first['nilai_pilihan'];
+            final t = attempts.first['total_skor'];
+            if (n is num && t is num && t > 0) nilaiCbt = n / t * 100;
+          }
+        } catch (_) {}
+
+        // 4) Nilai input manual (grading_records) — yang terbaru.
+        double? nilaiManual;
+        try {
+          var q = db
+              .from('grading_records')
+              .select('nilai')
+              .eq('student_user_id', uid);
+          if (subjectId != null) q = q.eq('subject_id', subjectId);
+          final rows =
+              await q.order('created_at', ascending: false).limit(1);
+          if (rows.isNotEmpty && rows.first['nilai'] is num) {
+            nilaiManual = (rows.first['nilai'] as num).toDouble();
+          }
+        } catch (_) {}
+
+        hasil.add({
+          'student_user_id': uid,
+          'nis': nis,
+          'nama': nama,
+          'rata_tugas': rataTugas,
+          'nilai_cbt': nilaiCbt,
+          'nilai_manual': nilaiManual,
+        });
+      }
+      return hasil;
+    } catch (_) {
+      return hasil;
+    }
+  }
+
+  // ---------- VERIFIKASI STAF (izin + mutabaah + hafalan 1 halaman) ----------
+
+  /// Setoran hafalan yang menunggu verifikasi.
+  static Future<QueryResult<RowData>> hafalanMenunggu() async {
+    try {
+      final rows = await db
+          .from('memorization_submissions')
+          .select()
+          .eq('status', 'menunggu')
+          .order('created_at', ascending: false)
+          .limit(100);
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Verifikasi hafalan: setujui / tolak (dengan alasan).
+  static Future<String?> verifikasiHafalan({
+    required String id,
+    required bool setuju,
+    String? alasanPenolakan,
+  }) async {
+    try {
+      await db.from('memorization_submissions').update({
+        'status': setuju ? 'terverifikasi' : 'ditolak',
+        'verified_by': uid,
+        'verified_at': DateTime.now().toIso8601String(),
+        'alasan_penolakan': setuju ? null : alasanPenolakan,
+      }).eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Verifikasi mutaba'ah harian (guru menandai sudah dicek).
+  static Future<String?> verifikasiMutabaah(String id) async {
+    try {
+      await db.from('mutabaah_entries').update({
+        'diverifikasi': true,
+        'diverifikasi_oleh': uid,
+        'diverifikasi_pada': DateTime.now().toIso8601String(),
+      }).eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Mutaba'ah hari ini (semua siswa, untuk staf).
+  static Future<QueryResult<RowData>> mutabaahHariIni() async {
+    try {
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      final rows = await db
+          .from('mutabaah_entries')
+          .select()
+          .eq('tanggal', today)
+          .order('created_at', ascending: false)
+          .limit(200);
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
+        total: rows.length,
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
   // ---------- PERPUSTAKAAN ----------
 
   static Future<QueryResult<RowData>> libraryBooks({

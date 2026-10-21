@@ -9,6 +9,8 @@ import '../../../widgets/quick_actions.dart';
 import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
 import '../akademik/rekap_presensi_page.dart';
+import '../akademik/leger_nilai_page.dart';
+import '../akademik/verifikasi_staf_page.dart';
 import '../cbt/kelola_exam_page.dart';
 import '../izin/izin_page.dart';
 
@@ -54,14 +56,24 @@ class GuruDashboard extends StatelessWidget {
                   ModulAksiGrid(
                     items: [
                       ModulAksi(
-                        label: 'Input Presensi',
-                        icon: Icons.fact_check_outlined,
-                        builder: (_) => PresensiInputPage(profile: profile),
-                      ),
-                      ModulAksi(
                         label: 'Kelola Ujian',
                         icon: Icons.edit_note_rounded,
                         builder: (_) => const KelolaExamPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Verifikasi',
+                        icon: Icons.fact_check_rounded,
+                        builder: (_) => const VerifikasiStafPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Leger Nilai',
+                        icon: Icons.table_chart_rounded,
+                        builder: (_) => const LegerNilaiPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Input Presensi',
+                        icon: Icons.fact_check_outlined,
+                        builder: (_) => PresensiInputPage(profile: profile),
                       ),
                       ModulAksi(
                         label: 'Input Nilai',

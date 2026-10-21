@@ -13,6 +13,8 @@ import '../admin/broadcast_page.dart';
 import '../admin/manajemen_pengguna_page.dart';
 import '../admin/gps_bus_page.dart';
 import '../admin/mode_sopir_page.dart';
+import '../akademik/leger_nilai_page.dart';
+import '../akademik/verifikasi_staf_page.dart';
 import '../cbt/kelola_exam_page.dart';
 import '../admin/master_data_page.dart';
 import '../admin/master_siswa_page.dart';
@@ -75,14 +77,24 @@ class AdminDashboard extends StatelessWidget {
                         builder: (_) => const BroadcastPengumumanPage(),
                       ),
                       ModulAksi(
-                        label: 'Bus & GPS',
-                        icon: Icons.directions_bus_outlined,
-                        builder: (_) => const GpsBusPage(),
-                      ),
-                      ModulAksi(
                         label: 'Kelola Ujian',
                         icon: Icons.edit_note_rounded,
                         builder: (_) => const KelolaExamPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Verifikasi',
+                        icon: Icons.fact_check_rounded,
+                        builder: (_) => const VerifikasiStafPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Leger Nilai',
+                        icon: Icons.table_chart_rounded,
+                        builder: (_) => const LegerNilaiPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Bus & GPS',
+                        icon: Icons.directions_bus_outlined,
+                        builder: (_) => const GpsBusPage(),
                       ),
                       ModulAksi(
                         label: 'Mode Sopir',
