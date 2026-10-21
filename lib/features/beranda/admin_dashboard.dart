@@ -12,6 +12,7 @@ import '../akademik/rekap_presensi_page.dart';
 import '../admin/broadcast_page.dart';
 import '../admin/manajemen_pengguna_page.dart';
 import '../admin/gps_bus_page.dart';
+import '../admin/mode_sopir_page.dart';
 import '../admin/master_data_page.dart';
 import '../admin/master_siswa_page.dart';
 import '../ppdb/ppdb_page.dart';
@@ -76,6 +77,11 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Bus & GPS',
                         icon: Icons.directions_bus_outlined,
                         builder: (_) => const GpsBusPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Mode Sopir',
+                        icon: Icons.navigation_rounded,
+                        builder: (_) => const ModeSopirPage(),
                       ),
                       ModulAksi(
                         label: 'Input Presensi',

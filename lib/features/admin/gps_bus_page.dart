@@ -38,9 +38,12 @@ class _GpsBusPageState extends State<GpsBusPage> {
     });
     final hasil = await Repos.vehicles();
     if (!mounted) return;
+    final lokasi = await Repos.lokasiTerakhirSemuaBus();
+    if (!mounted) return;
     setState(() {
       _bus = hasil.data;
       _error = hasil.error;
+      _lokasi = lokasi;
       _memuat = false;
     });
   }

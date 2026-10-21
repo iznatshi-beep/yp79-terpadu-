@@ -1383,6 +1383,53 @@ class Repos {
     }
   }
 
+  // ---------- BUS & GPS (sopir / tracker) ----------
+
+  /// Kirim posisi GPS dari HP pengemudi ke tabel `vehicle_locations`.
+  /// Dipanggil TrackerBus tiap ~20 detik saat mode mengemudi aktif.
+  static Future<String?> kirimLokasiBus({
+    required String vehicleId,
+    required double lat,
+    required double lng,
+    double? heading,
+    double? kecepatanKph,
+  }) async {
+    try {
+      await db.from('vehicle_locations').insert({
+        'vehicle_id': vehicleId,
+        'lat': lat,
+        'lng': lng,
+        if (heading != null) 'heading': heading,
+        if (kecepatanKph != null) 'kecepatan_kph': kecepatanKph,
+        'sumber': 'app-sopir',
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Lokasi terakhir tiap bus (untuk kartu admin). Kembalikan
+  /// vehicle_id -> baris vehicle_locations terbaru.
+  static Future<Map<String, RowData>> lokasiTerakhirSemuaBus() async {
+    try {
+      final rows = await db
+          .from('vehicle_locations')
+          .select()
+          .order('terekam_pada', ascending: false)
+          .limit(500);
+      final hasil = <String, RowData>{};
+      for (final r in rows) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final vid = m['vehicle_id']?.toString();
+        if (vid != null && !hasil.containsKey(vid)) hasil[vid] = m;
+      }
+      return hasil;
+    } catch (_) {
+      return {};
+    }
+  }
+
 
 
   /// Daftar anak bagi akun orang tua, LENGKAP DENGAN NAMA + NIS + KELAS.
