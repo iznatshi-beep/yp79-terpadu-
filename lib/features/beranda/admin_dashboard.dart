@@ -20,6 +20,7 @@ import '../admin/master_data_page.dart';
 import '../admin/master_siswa_page.dart';
 import '../ppdb/ppdb_page.dart';
 import '../izin/izin_page.dart';
+import '../lms/materi_page.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
 class AdminDashboard extends StatelessWidget {
@@ -90,6 +91,11 @@ class AdminDashboard extends StatelessWidget {
                         label: 'Leger Nilai',
                         icon: Icons.table_chart_rounded,
                         builder: (_) => const LegerNilaiPage(),
+                      ),
+                      ModulAksi(
+                        label: 'Terbitkan Materi',
+                        icon: Icons.cloud_upload_outlined,
+                        builder: (_) => const MateriPage(),
                       ),
                       ModulAksi(
                         label: 'Bus & GPS',

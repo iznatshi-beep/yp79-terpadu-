@@ -448,15 +448,14 @@ class Repos {
     String? subjectId,
   }) async {
     try {
-      final q = _filter(
-        'learning_materials',
-        orderCol: 'created_at',
-        ascending: false,
-        limit: 200,
-      );
-      if (classId != null) q.eq('class_id', classId);
-      if (subjectId != null) q.eq('subject_id', subjectId);
-      final rows = await q;
+      // Join subjek + kelas (untuk label UI). Siswa hanya melihat materi
+      // terbit (RLS memfilter otomatis; admin/guru melihat semua).
+      final q = db
+          .from('learning_materials')
+          .select('*, subjects(id, nama), classes(id, nama)');
+      final rows = await q
+          .order('created_at', ascending: false)
+          .limit(200);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);

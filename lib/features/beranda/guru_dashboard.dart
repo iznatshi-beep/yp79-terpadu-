@@ -13,6 +13,7 @@ import '../akademik/leger_nilai_page.dart';
 import '../akademik/verifikasi_staf_page.dart';
 import '../cbt/kelola_exam_page.dart';
 import '../izin/izin_page.dart';
+import '../lms/materi_page.dart';
 
 /// Dashboard Guru: kelas yang diampu + presensi + materi + tugas.
 class GuruDashboard extends StatelessWidget {
@@ -89,6 +90,11 @@ class GuruDashboard extends StatelessWidget {
                         label: 'Rekap Absen',
                         icon: Icons.summarize_outlined,
                         builder: (_) => RekapPresensiPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Terbitkan Materi',
+                        icon: Icons.cloud_upload_outlined,
+                        builder: (_) => const MateriPage(),
                       ),
                     ],
                   ),

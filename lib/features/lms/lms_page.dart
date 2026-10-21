@@ -5,6 +5,7 @@ import '../../../core/models/session_profile.dart';
 import '../../../services/repositories.dart';
 import '../../../widgets/app_states.dart';
 import '../../../widgets/common.dart';
+import 'materi_detail_page.dart';
 import 'tugas_detail_page.dart';
 
 /// Halaman LMS: materi, tugas, dan pengumpulan.
@@ -162,11 +163,12 @@ class _MateriList extends StatelessWidget {
                         : BadgeState.neutral,
                   ),
                   onTap: () {
-                    if (m['file_url'] != null) {
-                      showToast(context, 'Membuka materi… (URL: ${m['file_url']})');
-                    } else {
-                      showToast(context, 'Materi ini belum memiliki file.');
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MateriDetailPage(material: m),
+                      ),
+                    );
                   },
                 ),
               ),
