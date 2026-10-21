@@ -554,7 +554,7 @@ class _ExamTakePageState extends State<ExamTakePage>
       );
     }
     final opsi = <(String, String)>[
-      for (final l in ['a', 'b', 'c', 'd'])
+      for (final l in ['a', 'b', 'c', 'd', 'e'])
         if (soal['opsi_$l'] != null)
           (l.toUpperCase(), soal['opsi_$l'].toString()),
     ];

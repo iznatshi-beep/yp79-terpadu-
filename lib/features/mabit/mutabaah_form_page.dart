@@ -172,6 +172,38 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
   final _catatan = TextEditingController();
   bool _sibuk = false;
   String? _lampiranUrl;
+  List<RowData> _targets = const [];
+  String? _targetId;
+  bool _muatTarget = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _muatTarget();
+  }
+
+  Future<void> _muatTarget() async {
+    final me = widget.profile.studentId ?? widget.profile.sub;
+    if (me == null) {
+      if (mounted) setState(() => _muatTarget = false);
+      return;
+    }
+    final res = await Repos.db
+        .from('memorization_targets')
+        .select('id, kategori, judul, target_tanggal')
+        .eq('student_user_id', me)
+        .order('kategori')
+        .order('judul');
+    final rows = (res as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _targets = rows;
+      _muatTarget = false;
+    });
+    if (rows.isNotEmpty) setState(() => _targetId = rows.first['id']?.toString());
+  }
 
   @override
   void dispose() {
@@ -185,15 +217,20 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
       showToast(context, 'Isi capaian dulu (mis. "Al-Baqarah 1-10").');
       return;
     }
+    if (_targetId == null) {
+      showToast(context, 'Pilih target hafalan dulu.');
+      return;
+    }
     setState(() => _sibuk = true);
     try {
       await Repos.db.from('memorization_submissions').insert({
+        'target_id': _targetId,
         'student_user_id':
             widget.profile.studentId ?? widget.profile.sub ?? '',
         'capaian': _capaian.text.trim(),
         'catatan':
             _catatan.text.trim().isEmpty ? null : _catatan.text.trim(),
-        'status': 'menunggu',
+        'status': 'diajukan',
         if (_lampiranUrl != null) 'lampiran_url': _lampiranUrl,
       });
       if (!mounted) return;
@@ -206,6 +243,12 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
     } finally {
       if (mounted) setState(() => _sibuk = false);
     }
+  }
+
+  String _judulTarget(RowData t) {
+    final k = t['kategori']?.toString() ?? '';
+    final j = t['judul']?.toString() ?? '';
+    return k.isEmpty ? j : ('$k — $j');
   }
 
   Future<void> _pickLampiran() async {
@@ -228,11 +271,37 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_muatTarget)
+              const Padding(
+                  padding: EdgeInsets.all(8), child: SkeletonRow())
+            else if (_targets.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Belum ada target hafalan. Admin perlu membuat '
+                  'target di Data Master dulu.',
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              )
+            else
+              DropdownButtonFormField<String>(
+                value: _targetId,
+                decoration: const InputDecoration(labelText: 'Target hafalan'),
+                items: [
+                  for (final t in _targets)
+                    DropdownMenuItem(
+                        value: t['id']?.toString(),
+                        child: Text(_judulTarget(t))),
+                ],
+                onChanged: (v) => setState(() => _targetId = v),
+              ),
+            const SizedBox(height: 12),
             TextField(
               controller: _capaian,
               decoration: const InputDecoration(
                 labelText: 'Capaian hafalan',
-                hintText: 'Contoh: Juz Amma An-Naba sampai An-Nazi\'at',
+                hintText: "Contoh: Juz Amma An-Naba sampai An-Nazi'at",
               ),
             ),
             const SizedBox(height: 12),

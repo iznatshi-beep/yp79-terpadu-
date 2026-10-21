@@ -365,11 +365,12 @@ class _HafalanTab extends StatelessWidget {
                 itemCount: items.length,
                 itemBuilder: (context, i) {
                   final m = items[i];
-                  final status = m['status']?.toString() ?? 'menunggu';
+                  final status = m['status']?.toString() ?? 'diajukan';
                   final badge = switch (status) {
-                    'disetujui' || 'terverifikasi' =>
+                    'diverifikasi' =>
                       (BadgeState.success, 'Terverifikasi'),
                     'ditolak' => (BadgeState.danger, 'Ditolak'),
+                    'pengulangan' => (BadgeState.warning, 'Pengulangan'),
                     _ => (BadgeState.warning, 'Menunggu'),
                   };
                   return Padding(
