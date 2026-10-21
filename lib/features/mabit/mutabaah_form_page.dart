@@ -174,7 +174,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
   String? _lampiranUrl;
   List<RowData> _targets = const [];
   String? _targetId;
-  bool _muatTarget = true;
+  bool _targetsDimuat = true;
 
   @override
   void initState() {
@@ -185,7 +185,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
   Future<void> _muatTarget() async {
     final me = widget.profile.studentId ?? widget.profile.sub;
     if (me == null) {
-      if (mounted) setState(() => _muatTarget = false);
+      if (mounted) setState(() => _targetsDimuat = false);
       return;
     }
     final res = await Repos.db
@@ -200,7 +200,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
     if (!mounted) return;
     setState(() {
       _targets = rows;
-      _muatTarget = false;
+      _targetsDimuat = false;
     });
     if (rows.isNotEmpty) setState(() => _targetId = rows.first['id']?.toString());
   }
@@ -271,7 +271,7 @@ class _SetorHafalanPageState extends State<SetorHafalanPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_muatTarget)
+            if (_targetsDimuat)
               const Padding(
                   padding: EdgeInsets.all(8), child: SkeletonRow())
             else if (_targets.isEmpty)
