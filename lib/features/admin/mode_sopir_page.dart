@@ -106,7 +106,7 @@ class _ModeSopirPageState extends State<ModeSopirPage> {
     );
   }
 
-  List<Widget> get _kartuPilihan => [
+  List<Widget> _kartuPilihan() => [
         const Padding(
           padding: EdgeInsets.only(bottom: 12),
           child: Text(
