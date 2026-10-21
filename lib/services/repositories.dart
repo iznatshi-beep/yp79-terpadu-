@@ -747,6 +747,155 @@ class Repos {
     }
   }
 
+  // ---------- PANEL GURU CBT (buat ujian + koreksi esai) ----------
+
+  /// Buat ujian baru (guru/admin). Status awal 'draft'.
+  static Future<({String? error, String? examId})> buatExam({
+    required String judul,
+    String? deskripsi,
+    String? subjectId,
+    String? classId,
+    required DateTime mulai,
+    required DateTime selesai,
+    required int durasiMenit,
+    int jumlahPercobaan = 1,
+  }) async {
+    try {
+      final ins = await db
+          .from('exams')
+          .insert({
+            'dibuat_oleh': uid,
+            'subject_id': null, // mapel opsional; bisa diisi via dropdown
+            'class_id': classId,
+            'judul': judul,
+            'deskripsi': deskripsi,
+            'mulai': mulai.toIso8601String(),
+            'selesai': selesai.toIso8601String(),
+            'durasi_menit': durasi,
+            'jumlah_percobaan': jumlahPercobaan,
+            'status': 'draft',
+          })
+          .select('id')
+          .single();
+      return (error: null, examId: ins['id']?.toString());
+    } catch (e) {
+      return (error: _pesan(e.toString()), examId: null);
+    }
+  }
+
+  /// Ubah status ujian: draft → aktif → selesai.
+  static Future<String?> ubahStatusExam(String examId, String status) async {
+    try {
+      await db.from('exams').update({'status': status}).eq('id', examId);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Tambah soal pilihan ganda (kunci = huruf 'a'..'e').
+  static Future<String?> tambahSoalPG({
+    required String examId,
+    required String pertanyaan,
+    required String opsiA,
+    required String opsiB,
+    String? opsiC,
+    String? opsiD,
+    String? opsiE,
+    required String kunci,
+    int skor = 1,
+  }) async {
+    try {
+      await db.from('exam_questions').insert({
+        'exam_id': examId,
+        'urutan': DateTime.now().millisecondsSinceEpoch % 1000000,
+        'tipe': 'pilihan',
+        'pertanyaan': pertanyaan,
+        'opsi_a': opsiA,
+        'opsi_b': opsiB,
+        'opsi_c': opsiC,
+        'opsi_d': opsiD,
+        'opsi_e': opsiE,
+        'kunci': kunci,
+        'skor': skor,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Tambah soal esai (kunci NULL, dinilai manual guru).
+  static Future<String?> tambahSoalEsai({
+    required String examId,
+    required String pertanyaan,
+    int skor = 10,
+  }) async {
+    try {
+      await db.from('exam_questions').insert({
+        'exam_id': examId,
+        'urutan': DateTime.now().millisecondsSinceEpoch % 100000,
+        'tipe': 'esai',
+        'pertanyaan': pertanyaan,
+        'kunci': null,
+        'skor': skor,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Hapus soal.
+  static Future<String?> hapusSoal(String questionId) async {
+    try {
+      await db.from('exam_questions').delete().eq('id', questionId);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Daftar peserta satu ujian (RPC migration 0020).
+  static Future<List<Map<String, dynamic>>> examPeserta(String examId) async {
+    try {
+      final res = await db
+          .rpc('exam_peserta', params: {'p_exam': examId});
+      return [for (final r in (res as List)) Map<String, dynamic>.from(r as Map)];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Jawaban esai satu attempt (untuk halaman koreksi).
+  static Future<List<Map<String, dynamic>>> examEsaiJawaban(
+      String attemptId) async {
+    try {
+      final res = await db.rpc('exam_esai_jawaban',
+          params: {'p_attempt': attemptId});
+      return [
+        for (final r in (res as List)) Map<String, dynamic>.from(r as Map)
+      ];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Simpan nilai esai satu soal; return nilai total baru (PG+esai).
+  static Future<double?> simpanNilaiEsai(
+      String attemptId, String questionId, double nilai) async {
+    try {
+      final res = await db.rpc('exam_nilai_esai', params: {
+        'p_attempt': attemptId,
+        'p_question': questionId,
+        'p_nilai': nilai,
+      });
+      return double.tryParse(res?.toString() ?? '');
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ---------- PERPUSTAKAAN ----------
 
   static Future<QueryResult<RowData>> libraryBooks({

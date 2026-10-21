@@ -9,6 +9,7 @@ import '../../../widgets/quick_actions.dart';
 import '../akademik/nilai_input_page.dart';
 import '../akademik/presensi_input_page.dart';
 import '../akademik/rekap_presensi_page.dart';
+import '../cbt/kelola_exam_page.dart';
 import '../izin/izin_page.dart';
 
 /// Dashboard Guru: kelas yang diampu + presensi + materi + tugas.
@@ -56,6 +57,11 @@ class GuruDashboard extends StatelessWidget {
                         label: 'Input Presensi',
                         icon: Icons.fact_check_outlined,
                         builder: (_) => PresensiInputPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Kelola Ujian',
+                        icon: Icons.edit_note_rounded,
+                        builder: (_) => const KelolaExamPage(),
                       ),
                       ModulAksi(
                         label: 'Input Nilai',

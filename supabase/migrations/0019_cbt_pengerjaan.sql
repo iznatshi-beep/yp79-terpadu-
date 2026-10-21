@@ -12,7 +12,8 @@
 
 -- ----------------------------------------------------------------- kolom ---
 alter table exam_questions
-  add column if not exists gambar_url text;
+  add column if not exists gambar_url text,
+  add column if not exists opsi_e text;
 alter table exam_answers
   add column if not exists ragu boolean not null default false;
 alter table exam_attempts
