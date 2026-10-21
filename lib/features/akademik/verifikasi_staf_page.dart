@@ -349,8 +349,7 @@ class _TabHafalanState extends State<_TabHafalan> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () =>
-                              _putuskan(h, setuju: false),
+                          onPressed: () => _putuskan(h, false),
                           icon: const Icon(Icons.close_rounded, size: 16),
                           label: const Text('Tolak'),
                         ),
@@ -358,7 +357,7 @@ class _TabHafalanState extends State<_TabHafalan> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: () => _putuskan(h, setuju: true),
+                          onPressed: () => _putuskan(h, true),
                           icon: const Icon(Icons.check_rounded, size: 16),
                           label: const Text('Setujui'),
                         ),
