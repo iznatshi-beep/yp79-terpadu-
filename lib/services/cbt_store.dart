@@ -122,7 +122,7 @@ class CbtApi {
         },
       );
     } catch (e) {
-      return CbtSesi(ok: false, error: _bersihkan(e.toString()));
+      return CbtSesi(ok: false, error: e.toString());
     }
   }
 
@@ -151,7 +151,7 @@ class CbtApi {
       final n = double.tryParse(res?.toString() ?? '');
       return (ok: true, error: null, nilai: n);
     } catch (e) {
-      return (ok: false, error: _bersihkan(e.toString()), nilai: null);
+      return (ok: false, error: e.toString(), nilai: null);
     }
   }
 
