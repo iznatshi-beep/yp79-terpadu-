@@ -371,7 +371,7 @@ class _ConsentPageState extends State<ConsentPage> {
                     ),
                   ),
                 const SizedBox(height: 8),
-                if (sudahJawab.isEmpty)
+                if (sudahJawab.isEmpty) ...[
                   Row(
                     children: [
                       Expanded(
@@ -393,25 +393,22 @@ class _ConsentPageState extends State<ConsentPage> {
                       ),
                     ],
                   ),
-                else
-                  Column(
-                    children: [
-                      for (final r in sudahJawab)
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline,
-                                size: 18, color: AppColors.success),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Jawaban: ${r['jawaban'] == 'setuju' ? 'Setuju' : 'Tidak Setuju'} • ${r['created_at']?.toString().split('T').first}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
+                ] else ...[
+                  for (final r in sudahJawab)
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline,
+                            size: 18, color: AppColors.success),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Jawaban: ${r['jawaban'] == 'setuju' ? 'Setuju' : 'Tidak Setuju'} • ${r['created_at']?.toString().split('T').first}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
-                    ],
-                  ),
+                      ],
+                    ),
+                ]
               ],
             ),
           ),
