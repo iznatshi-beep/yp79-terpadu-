@@ -43,7 +43,7 @@ class ExamAlarmService : Service() {
         handler.post(volumeRunnable)
     }
 
-    private fun enforceMaxVolume() {
+    private fun enforceAlarmVolume() {
         try {
             val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             // Hanya stream alarm — volume media/user tidak disentuh.
@@ -96,7 +96,7 @@ class ExamAlarmService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val maxVolume = intent?.getBooleanExtra("maxVolume", true) ?: true
-        if (maxVolume) enforceMaxVolume()
+        if (maxVolume) enforceAlarmVolume()
         // IDEMPOTENT: kalau sudah bunyi JANGAN restart (anti 'tot-tot' berulang).
         if (player == null || tryGetIsPlaying() != true) {
             playAlarm()
@@ -154,7 +154,7 @@ class ExamAlarmService : Service() {
             player.prepare()
             player.start()
             this.player = player
-            enforceMaxVolume()
+            enforceAlarmVolume()
         } catch (_: Exception) {}
     }
 
