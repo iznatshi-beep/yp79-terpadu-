@@ -771,7 +771,7 @@ class Repos {
             'deskripsi': deskripsi,
             'mulai': mulai.toIso8601String(),
             'selesai': selesai.toIso8601String(),
-            'durasi_menit': durasi,
+            'durasi_menit': durasiMenit,
             'jumlah_percobaan': jumlahPercobaan,
             'status': 'draft',
           })
