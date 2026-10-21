@@ -235,9 +235,9 @@ class _TabMutabaahState extends State<_TabMutabaah> {
                       child: const Text('Verifikasi'),
                     ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -374,40 +374,4 @@ class _TabHafalanState extends State<_TabHafalan> {
     );
   }
 
-  Future<void> _putuskan(RowData h, {required bool setuju}) async {
-    String? alasan;
-    if (!setuju) {
-      final ctrl = TextEditingController();
-      final lanjut = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Tolak setoran?'),
-          content: TextField(
-            controller: ctrl,
-            decoration: const InputDecoration(
-                labelText: 'Alasan penolakan (opsional)'),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
-            FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Tolak')),
-          ],
-        ),
-      );
-      if (lanjut != true) return;
-      alasan = ctrl.text.trim().isEmpty ? null : ctrl.text.trim();
-    }
-    final err = await Repos.verifikasiHafalan(
-      id: h['id']?.toString() ?? '',
-      setuju: setuju,
-      alasanPenolakan: alasan,
-    );
-    if (!mounted) return;
-    showToast(context, err ?? (setuju ? 'Disetujui.' : 'Ditolak.'),
-        color: err == null ? AppColors.success : AppColors.danger);
-    _muat();
-  }
 }
