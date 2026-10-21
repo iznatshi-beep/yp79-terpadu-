@@ -19,7 +19,7 @@ class AppointmentPage extends StatefulWidget {
 }
 
 class _AppointmentPageState extends State<AppointmentPage> {
-  bool _muat = true;
+  bool _dataDimuat = true;
   final _items = <RowData>[];
   String? _statusFilter;
 
@@ -38,7 +38,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   Future<void> _muat() async {
-    setState(() => _muat = true);
+    setState(() => _dataDimuat = true);
     try {
       final isParent = widget.profile.isParent;
       final isGuru = widget.profile.isStaff && !widget.profile.isAdmin;
@@ -49,50 +49,57 @@ class _AppointmentPageState extends State<AppointmentPage> {
       // Admin: lihat semua
       final uid = Repos.uid;
 
+      // Cache nama guru
+      final guruRows = await Repos.db
+          .from('profiles')
+          .select('id, nama')
+          .eq('role', 'guru')
+          .limit(100);
+      for (final g in guruRows) {
+        _guruNamaCache[g['id']?.toString() ?? ''] = g['nama']?.toString() ?? '';
+      }
+
       if (isParent) {
         final r = await Repos.db
             .from('appointments')
-            .select(
-                '*, profiles(nama), guru_profiles(nama as guru_nama)')
+            .select('*, profiles(nama)')
             .eq('diajukan_oleh', uid)
             .order('created_at', ascending: false)
             .limit(100);
         if (!mounted) return;
         setState(() {
-          _muat = false;
+          _dataDimuat = false;
           _items
               .addAll([for (final x in r) Map<String, dynamic>.from(x as Map)]);
         });
       } else if (isGuru) {
         final r = await Repos.db
             .from('appointments')
-            .select(
-                '*, profiles(nama), guru_profiles(nama as guru_nama)')
+            .select('*, profiles(nama)')
             .eq('guru_user_id', uid)
             .order('tanggal')
             .limit(200);
         if (!mounted) return;
         setState(() {
-          _muat = false;
+          _dataDimuat = false;
           _items
               .addAll([for (final x in r) Map<String, dynamic>.from(x as Map)]);
         });
       } else {
         final r = await Repos.db
             .from('appointments')
-            .select(
-                '*, profiles(nama), guru_profiles(nama as guru_nama)')
+            .select('*, profiles(nama)')
             .order('created_at', ascending: false)
             .limit(200);
         if (!mounted) return;
         setState(() {
-          _muat = false;
+          _dataDimuat = false;
           _items
               .addAll([for (final x in r) Map<String, dynamic>.from(x as Map)]);
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _muat = false);
+      if (mounted) setState(() => _dataDimuat = false);
     }
   }
 
@@ -169,10 +176,14 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   String? _guruNama(RowData item) {
-    final guru = item['guru_profiles'] as Map?;
-    if (guru != null && guru['nama'] != null) return guru['nama'].toString();
-    return item['guru_user_id']?.toString() ?? 'Guru';
+    // guru_user_id points to profiles.id
+    final guruId = item['guru_user_id']?.toString();
+    if (guruId != null && _guruNamaCache.containsKey(guruId)) {
+      return _guruNamaCache[guruId];
+    }
+    return 'Guru';
   }
+  final Map<String, String> _guruNamaCache = {};
 
   String _statusLabel(String s) {
     switch (s) {
@@ -229,7 +240,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
         children: [
           if (isParent && _tampilAjukan) _buildFormAjukan(),
           Expanded(
-            child: _muat
+            child: _dataDimuat
                 ? const Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(child: CircularProgressIndicator()),

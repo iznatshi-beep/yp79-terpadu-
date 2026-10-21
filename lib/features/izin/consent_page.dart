@@ -18,7 +18,7 @@ class ConsentPage extends StatefulWidget {
 }
 
 class _ConsentPageState extends State<ConsentPage> {
-  bool _muat = true;
+  bool _dataDimuat = true;
   final _forms = <RowData>[];
   final _respons = <RowData>[];
 
@@ -74,7 +74,7 @@ class _ConsentPageState extends State<ConsentPage> {
   final _guruList = <RowData>[];
 
   Future<void> _muat() async {
-    setState(() => _muat = true);
+    setState(() => _dataDimuat = true);
     try {
       final isParent = widget.profile.isParent;
       final uid = Repos.uid;
@@ -102,7 +102,7 @@ class _ConsentPageState extends State<ConsentPage> {
 
       if (!mounted) return;
       setState(() {
-        _muat = false;
+        _dataDimuat = false;
         _forms
             .addAll([for (final f in forms) Map<String, dynamic>.from(f as Map)]);
         _respons.clear();
@@ -110,7 +110,7 @@ class _ConsentPageState extends State<ConsentPage> {
             .addAll([for (final r in resp) Map<String, dynamic>.from(r as Map)]);
       });
     } catch (_) {
-      if (mounted) setState(() => _muat = false);
+      if (mounted) setState(() => _dataDimuat = false);
     }
   }
 
@@ -231,7 +231,7 @@ class _ConsentPageState extends State<ConsentPage> {
         children: [
           if (isStaff && _tampilBuat) _buildFormBuat(),
           Expanded(
-            child: _muat
+            child: _dataDimuat
                 ? const Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(child: CircularProgressIndicator()),
@@ -394,20 +394,24 @@ class _ConsentPageState extends State<ConsentPage> {
                     ],
                   ),
                 else
-                  for (final r in sudahJawab)
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline,
-                            size: 18, color: AppColors.success),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Jawaban: ${r['jawaban'] == 'setuju' ? 'Setuju' : 'Tidak Setuju'} • ${r['created_at']?.toString().split('T').first}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
+                  Column(
+                    children: [
+                      for (final r in sudahJawab)
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline,
+                                size: 18, color: AppColors.success),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Jawaban: ${r['jawaban'] == 'setuju' ? 'Setuju' : 'Tidak Setuju'} • ${r['created_at']?.toString().split('T').first}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                    ],
+                  ),
               ],
             ),
           ),
