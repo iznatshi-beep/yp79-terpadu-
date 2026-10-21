@@ -236,8 +236,8 @@ class _TabMutabaahState extends State<_TabMutabaah> {
                     ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
