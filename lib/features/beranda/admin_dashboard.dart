@@ -23,6 +23,9 @@ import '../izin/izin_page.dart';
 import '../lms/materi_page.dart';
 import '../izin/consent_page.dart';
 import '../izin/appointment_page.dart';
+import '../akademik/rapor_page.dart';
+import '../mabit/media_mabit_page.dart';
+import '../admin/alokasi_bus_page.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
 class AdminDashboard extends StatelessWidget {
@@ -110,6 +113,24 @@ class AdminDashboard extends StatelessWidget {
                         icon: Icons.handshake_outlined,
                         builder: (_) =>
                             ConsentPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Rapor',
+                        icon: Icons.school_outlined,
+                        builder: (_) =>
+                            RaporPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Media MABIT',
+                        icon: Icons.photo_library_outlined,
+                        builder: (_) =>
+                            MediaMabitPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Alokasi Bus',
+                        icon: Icons.bus_alert_outlined,
+                        builder: (_) =>
+                            AlokasiBusPage(profile: profile),
                       ),
                       ModulAksi(
                         label: 'Bus & GPS',

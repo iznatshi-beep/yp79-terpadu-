@@ -1884,4 +1884,222 @@ class Repos {
       return false;
     }
   }
+
+  // ---------- MEDIA MABIT (guru/admin upload, semua baca) ----------
+
+  /// Daftar media per event MABIT (galeri dokumen/foto untuk peserta).
+  static Future<QueryResult<RowData>> mabitMedia(String eventId) async {
+    try {
+      final rows = await db
+          .from('mabit_media')
+          .select()
+          .eq('event_id', eventId)
+          .order('created_at', ascending: false);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Unggah file media ke event MABIT (bucket `lampiran`), insert
+  /// `mabit_media` (RLS: admin/staff), publish langsung.
+  static Future<String?> unggahMabitMedia({
+    required String eventId,
+    required String fileUrl,
+    String? deskripsi,
+    bool publikasikan = true,
+  }) async {
+    try {
+      await db.from('mabit_media').insert({
+        'event_id': eventId,
+        'file_url': fileUrl,
+        'deskripsi': deskripsi,
+        'dipublikasikan': publikasikan,
+        'diunggah_oleh': Repos.uid,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Ubah status publik/draf media.
+  static Future<String?> setMediaPublik(String id, bool publik) async {
+    try {
+      await db
+          .from('mabit_media')
+          .update({'dipublikasikan': publik})
+          .eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Hapus media (hanya admin per RLS).
+  static Future<String?> hapusMabitMedia(String id) async {
+    try {
+      await db.from('mabit_media').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  // ---------- ALOKASI BUS (siswa naik kendaraan, admin) ----------
+
+  /// Daftar alokasi bus: siswa + kendaraan. Join nama siswa & plat.
+  static Future<QueryResult<RowData>> vehicleAssignments() async {
+    try {
+      final rows = await db
+          .from('vehicle_assignments')
+          .select(
+              '*, vehicles(id, plat_nomor, jenis, sopir_nama), student_profiles(*)')
+          .order('created_at', ascending: false);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Alokasi siswa ke kendaraan (admin): set rute + siswa.
+  static Future<String?> alokasiBus({
+    required String vehicleId,
+    required String studentUserId,
+    String? ruteMulai,
+    String? ruteTujuan,
+  }) async {
+    try {
+      await db.from('vehicle_assignments').insert({
+        'vehicle_id': vehicleId,
+        'student_user_id': studentUserId,
+        if (ruteMulai != null) 'rute_mulai': ruteMulai,
+        if (ruteTujuan != null) 'rute_tujuan': ruteTujuan,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Hapus alokasi bus.
+  static Future<String?> hapusAlokasiBus(String id) async {
+    try {
+      await db.from('vehicle_assignments').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  // ---------- RAPOR / REPORT CARD (admin buat, ortu/siswa baca) ----------
+
+  /// Daftar rapor per siswa (join nama siswa). Semua semester.
+  static Future<QueryResult<RowData>> raports({String? studentId}) async {
+    try {
+      final q = _filter(
+        'report_cards',
+        select: '*, student_profiles(user_id, nis, nama_lengkap, kelas_id)',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 200,
+      );
+      if (studentId != null) q.eq('student_user_id', studentId);
+      final rows = await q;
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Detail mata-pel dalam satu rapor.
+  static Future<QueryResult<RowData>> raportItems(String raportId) async {
+    try {
+      final rows = await db
+          .from('report_card_items')
+          .select('*, subjects(id, nama)')
+          .eq('report_card_id', raportId)
+          .order('subject_id');
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Buat rapor (admin) + isian mapel sekaligus. Status draf.
+  static Future<String?> buatRaport({
+    required String studentId,
+    required String semester,
+    required String tahunAjaran,
+    required List<RowData> items,
+    String? catatanKarakter,
+    bool publikasikan = false,
+  }) async {
+    try {
+      final ins = await db.from('report_cards').insert({
+        'student_user_id': studentId,
+        'semester': semester,
+        'tahun_ajaran': tahunAjaran,
+        'status': publikasikan ? 'dipublikasikan' : 'draf',
+        'dibuat_oleh': Repos.uid,
+        if (catatanKarakter != null && catatanKarakter.isNotEmpty)
+          'catatan_karakter': catatanKarakter,
+      }).select('id').single();
+      final raportId = ins['id'] as String;
+      if (items.isNotEmpty) {
+        await db.from('report_card_items').insert([
+          for (final it in items) {
+            {
+              'report_card_id': raportId,
+              'subject_id': it['subject_id'],
+              'nilai_akhir': it['nilai_akhir'],
+              'predikat': it['predikat'],
+              'catatan_guru': it['catatan_guru'],
+            }
+          }
+        ]);
+      }
+      if (publikasikan) {
+        await db
+            .from('report_cards')
+            .update({'dipublikasikan_pada': DateTime.now().toIso8601String()})
+            .eq('id', raportId);
+      }
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Ubah status rapor (admin). Dipakai untuk publikasi/ubah draf.
+  static Future<String?> ubahStatusRaport(String id, String status) async {
+    try {
+      final payload = <String, dynamic>{'status': status};
+      if (status == 'dipublikasikan') {
+        payload['dipublikasikan_pada'] = DateTime.now().toIso8601String();
+      }
+      await db.from('report_cards').update(payload).eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Hapus rapor (admin).
+  static Future<String?> hapusRaport(String id) async {
+    try {
+      await db.from('report_cards').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
 }

@@ -9,6 +9,8 @@ import '../../../widgets/quick_actions.dart';
 import '../izin/izin_page.dart';
 import '../izin/consent_page.dart';
 import '../izin/appointment_page.dart';
+import '../akademik/rapor_page.dart';
+import '../admin/alokasi_bus_page.dart';
 
 /// Dashboard Orang Tua: memilih anak → presensi + nilai + pembiayaan anak.
 class OrangTuaDashboard extends StatelessWidget {
@@ -127,6 +129,18 @@ class _AnakListState extends State<_AnakList> {
                         icon: Icons.schedule_send_outlined,
                         builder: (_) =>
                             AppointmentPage(profile: widget.profile),
+                      ),
+                      ModulAksi(
+                        label: 'Rapor Anak',
+                        icon: Icons.school_outlined,
+                        builder: (_) =>
+                            RaporPage(profile: widget.profile),
+                      ),
+                      ModulAksi(
+                        label: 'Alokasi Bus',
+                        icon: Icons.bus_alert_outlined,
+                        builder: (_) =>
+                            AlokasiBusPage(profile: widget.profile),
                       ),
                     ],
                   ),
