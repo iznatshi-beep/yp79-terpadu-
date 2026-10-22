@@ -2102,4 +2102,80 @@ class Repos {
       return _pesan(e);
     }
   }
+
+  // ---------- LAPORAN KEJADIAN / INCIDENT REPORTS ----------
+
+  /// Daftar laporan kejadian (join pelapor & siswa sasaran).
+  static Future<QueryResult<RowData>> incidents() async {
+    try {
+      final q = _filter(
+        'incident_reports',
+        select:
+            '*, reporter:profiles!incident_reports_reporter_id_fkey(id, nama, email, role), target:profiles!incident_reports_target_siswa_id_fkey(id, nama, email, role)',
+        orderCol: 'created_at',
+        ascending: false,
+        limit: 200,
+      );
+      final rows = await q;
+      return QueryResult<RowData>(
+        data: [for (final r in rows) Map<String, dynamic>.from(r)],
+      );
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Buat laporan kejadian (siswa/ortu/admin: reporter = user aktif).
+  static Future<String?> buatInsiden({
+    required String kategori,
+    required String deskripsi,
+    String? lokasi,
+    String? waktuKejadian,
+    String? targetSiswaId,
+    String? lampiranUrl,
+  }) async {
+    try {
+      await db.from('incident_reports').insert({
+        'reporter_id': uid,
+        'kategori': kategori,
+        'deskripsi': deskripsi,
+        if (lokasi != null && lokasi.trim().isNotEmpty) 'lokasi': lokasi,
+        if (waktuKejadian != null) 'waktu_kejadian': waktuKejadian,
+        if (targetSiswaId != null) 'target_siswa_id': targetSiswaId,
+        if (lampiranUrl != null) 'lampiran_url': lampiranUrl,
+      });
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Ubah status laporan (admin): processed / resolved + keterangan.
+  static Future<String?> updateStatusInsiden(
+    String id, {
+    required String status,
+    String? keterangan,
+  }) async {
+    try {
+      final payload = <String, dynamic>{'status': status};
+      if (keterangan != null) {
+        payload['keterangan_admin'] = keterangan;
+      }
+      payload['handled_by'] = uid;
+      await db.from('incident_reports').update(payload).eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Hapus laporan (admin).
+  static Future<String?> hapusInsiden(String id) async {
+    try {
+      await db.from('incident_reports').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
 }

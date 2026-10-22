@@ -11,6 +11,7 @@ import '../izin/consent_page.dart';
 import '../izin/appointment_page.dart';
 import '../akademik/rapor_page.dart';
 import '../admin/alokasi_bus_page.dart';
+import '../insiden/incident_page.dart';
 
 /// Dashboard Orang Tua: memilih anak → presensi + nilai + pembiayaan anak.
 class OrangTuaDashboard extends StatelessWidget {
@@ -141,6 +142,12 @@ class _AnakListState extends State<_AnakList> {
                         icon: Icons.bus_alert_outlined,
                         builder: (_) =>
                             AlokasiBusPage(profile: widget.profile),
+                      ),
+                      ModulAksi(
+                        label: 'Laporan Kejadian',
+                        icon: Icons.campaign_outlined,
+                        builder: (_) =>
+                            IncidentPage(profile: widget.profile),
                       ),
                     ],
                   ),

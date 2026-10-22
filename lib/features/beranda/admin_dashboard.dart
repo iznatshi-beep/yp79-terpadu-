@@ -26,6 +26,7 @@ import '../izin/appointment_page.dart';
 import '../akademik/rapor_page.dart';
 import '../mabit/media_mabit_page.dart';
 import '../admin/alokasi_bus_page.dart';
+import '../insiden/incident_page.dart';
 
 /// Dashboard Administrator: statistik nyata dari DB + akses modul.
 class AdminDashboard extends StatelessWidget {
@@ -131,6 +132,12 @@ class AdminDashboard extends StatelessWidget {
                         icon: Icons.bus_alert_outlined,
                         builder: (_) =>
                             AlokasiBusPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Laporan Kejadian',
+                        icon: Icons.campaign_outlined,
+                        builder: (_) =>
+                            IncidentPage(profile: profile),
                       ),
                       ModulAksi(
                         label: 'Bus & GPS',

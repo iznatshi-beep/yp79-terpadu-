@@ -10,6 +10,7 @@ import '../izin/izin_page.dart';
 import '../akademik/rapor_page.dart';
 import '../mabit/media_mabit_page.dart';
 import '../admin/alokasi_bus_page.dart';
+import '../insiden/incident_page.dart';
 
 /// Dashboard Siswa: presensi hari ini + jadwal + tugas + ujian.
 class SiswaDashboard extends StatelessWidget {
@@ -67,6 +68,11 @@ class SiswaDashboard extends StatelessWidget {
                         label: 'Rapor',
                         icon: Icons.school_outlined,
                         builder: (_) => RaporPage(profile: profile),
+                      ),
+                      ModulAksi(
+                        label: 'Laporan Kejadian',
+                        icon: Icons.campaign_outlined,
+                        builder: (_) => IncidentPage(profile: profile),
                       ),
                       ModulAksi(
                         label: 'Media MABIT',

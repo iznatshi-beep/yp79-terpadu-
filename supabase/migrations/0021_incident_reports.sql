@@ -1,0 +1,10 @@
+create table if not exists public.incident_reports (id uuid primary key default gen_random_uuid(), reporter_id uuid not null references public.profiles(id) on delete cascade, target_siswa_id uuid references public.profiles(id) on delete set null, kategori text not null default 'lainnya', deskripsi text not null, lokasi text, waktu_kejadian timestamptz default now(), lampiran_url text, status text not null default 'reported' check (status in ('reported','processed','resolved')), keterangan_admin text, handled_by uuid references public.profiles(id) on delete set null, created_at timestamptz not null default now());
+alter table public.incident_reports enable row level security;
+drop policy if exists i_read on public.incident_reports;
+create policy i_read on public.incident_reports for select using (true);
+drop policy if exists i_ins on public.incident_reports;
+create policy i_ins on public.incident_reports for insert with check (auth.role()='authenticated' and auth.uid()=reporter_id);
+drop policy if exists i_upd on public.incident_reports;
+create policy i_upd on public.incident_reports for update using (exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
+drop policy if exists i_del on public.incident_reports;
+create policy i_del on public.incident_reports for delete using (exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
