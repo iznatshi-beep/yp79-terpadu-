@@ -31,15 +31,17 @@ yp79-terpadu/
    trigger audit log otomatis pada 10 tabel sensitif.
 10. Ulangi untuk `0007_chat_rls_fix.sql` — perbaikan RLS chat yang rekursi
     (`42P17 infinite recursion`), ekstensi pgcrypto untuk presensi QR.
+11. Lanjutkan berurutan s.d. `0021_incident_reports.sql` (reset sandi, PPDB,
+    peminjaman buku, lampiran MABIT, CBT pengerjaan + panel guru, laporan kejadian).
 
-**Cara lebih cepat:** pakai `supabase/migrations/ALL_IN_ONE.sql` (semua 7 migrasi
+**Cara lebih cepat:** pakai `supabase/migrations/ALL_IN_ONE.sql` (semua migrasi
 digabung berurutan) — cukup sekali paste lalu Run.
 
-> **Status 18 Okt 2026**: backend YP79 sudah LIVE di project
-> `kqkemiuqyfhqbwlgguqg` — hasil verifikasi: **59/59 tabel OK**, 235 policy RLS,
-> 19 fungsi, seed lengkap. Kalau membuat project baru, jalankan migrasi di atas
-> dari nol; kalau memakai project lama, jalankan `RESET_DESTRUCTIVE.sql` dulu
-> (perintah lengkap ada di `docs/AUDIT.md` §3A).
+> **Status 22 Okt 2026**: backend YP79 sudah LIVE di project
+> `kqkemiuqyfhqbwlgguqg` — hasil verifikasi: **60+ tabel OK**, 235 policy RLS,
+> 19 fungsi, seed lengkap, migrasi s.d. `0021` terpasang. Kalau membuat project
+> baru, jalankan migrasi di atas dari nol; kalau memakai project lama, jalankan
+> `RESET_DESTRUCTIVE.sql` dulu (perintah lengkap ada di `docs/AUDIT.md` §3A).
 >
 > **Catatan**: URL Supabase lama (`yukqngrtgevveimhrwke.supabase.co`) sudah
 > **tidak ada** (DNS: non-existent domain).
@@ -196,11 +198,37 @@ Catatan penting:
 | Modul | Status | Keterangan |
 |---|---|---|
 | QR Presensi | Siap | Gunakan `generate_attendance_qr` RPC. Token sekali pakai, hash disimpan server. |
+| Push Notification (FCM) | Siap | Jalankan `node push-notifier/fcm.js` (Node 22+), jadwalkan cron/Task Scheduler ±1 menit. Butuh `.secrets/fcm_service_account.json` + `.secrets/svc_key.txt`. Idempotent (SQLite push_log.db). Lihat `push-notifier/README.md`. |
 | RFID | Menunggu perangkat | Tunggu integrasi reader fisik. Struktur `attendance_method='rfid'` sudah ada. |
-| Push Notification | Menunggu FCM setup | Supabase Realtime tersedia. Push FCM butuh konfigurasi Firebase di aplikasi + webhook. |
 | GPS Bus | Siap (telemetry) | `vehicle_locations` menerima koordinat dari device GPS/telemetry. Tanpa kredensial external, tampilkan "posisi belum tersedia". |
 | Pembayaran | Nonaktif | Sesuai keputusan Anda, pembayaran via aplikasi dihapus. Modul keuangan hanya menampilkan `finance_items` (jenis biaya + nominal) sebagai informasi, tanpa transaksi. |
+| Laporan Kejadian | Siap | `incident_reports` + RLS (migrasi 0021) — siswa/ortu buat laporan, admin tindaklanjuti. |
 
-## 9. Backup
+## 9. Data Sekolah yang Perlu Diisi (agar modul hidup)
+
+Backend kosong terlihat "app jalan tapi kosong". Urutan isi via app (login admin):
+
+| Urutan | Data | Tabel | Kenapa |
+|---|---|---|---|
+| 1 | Kelas | `classes` | Wajib pertama — presensi/nilai/LMS/insiden semuanya pegang kelas |
+| 2 | Mapel | `subjects` | 8 sudah ter-seed; tambah bila perlu |
+| 3 | Jadwal + penugasan guru | `schedules`, `teacher_assignments` | Modul jadwal & presensi guru |
+| 4 | Siswa per kelas | akun + `student_profiles` | Via Manajemen Pengguna di app |
+| 5 | Opsional | kendaraan, MABIT, buku, soal CBT, kategori biaya, kalender akademik | Per modul terkait |
+
+## 10. Push Notifikasi (FCM)
+
+```bash
+npm install                      # firebase-admin (root repo)
+node push-notifier/fcm.js        # uji sekali jalan
+```
+- Butuh **Node.js 22+** (pakai `node:sqlite` bawaan).
+- Kredensial: `.secrets/fcm_service_account.json` + `.secrets/svc_key.txt`.
+- Jadwalkan tiap ±1 menit: Task Scheduler Windows atau cron.
+- Idempotent — log kirim di `push-notifier/push_log.db` (SQLite), tidak dobel kirim.
+- FCM token perangkat terdaftar otomatis di tabel `push_tokens` saat user login di app.
+- Detail lengkap: `push-notifier/README.md`.
+
+## 11. Backup
 
 Di Supabase Dashboard → **Database → Backups**, atur interval backup otomatis. Skema dan data semua tersimpan di Postgres. Jika perlu migrasi antar project, export seluruh skema + data via `pg_dump` atau Supabase Dashboard → **Database → Export**.
