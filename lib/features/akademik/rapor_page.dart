@@ -141,6 +141,40 @@ class _RaporPageState extends State<RaporPage> {
     }
   }
 
+  /// Generate rapor massal per kelas (admin): pilih kelas + semester,
+  /// sistem hitung rata-rata nilai per mapel & buat rapor draf tiap siswa.
+  Future<void> _generateMassal() async {
+    final kelasRes = await Repos.classes();
+    if (!mounted) return;
+    if (kelasRes.data.isEmpty) {
+      showToast(context, 'Belum ada kelas.', color: AppColors.danger);
+      return;
+    }
+    final hasil = await showModalBottomSheet<({String kelasId, String semester, String tahun, bool publikasi})>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _FormRaporMassal(kelas: kelasRes.data),
+    );
+    if (hasil == null) return;
+    setState(() => _sibukBuat = true);
+    final r = await Repos.buatRaportMassal(
+      classId: hasil.kelasId,
+      semester: hasil.semester,
+      tahunAjaran: hasil.tahun,
+      publikasikan: hasil.publikasi,
+    );
+    if (!mounted) return;
+    setState(() => _sibukBuat = false);
+    if (r.error != null) {
+      showToast(context, r.error!, color: AppColors.danger);
+      return;
+    }
+    showToast(context,
+        '${hasil.publikasi ? "Dipublikasikan" : "Draf"}: ${r.jumlah} rapor dibuat.',
+        color: AppColors.success, durasi: 5);
+    await _muat();
+  }
+
   Future<void> _terbitkan(String id) async {
     final err = await Repos.ubahStatusRaport(id, 'dipublikasikan');
     if (!mounted) return;
@@ -200,6 +234,12 @@ class _RaporPageState extends State<RaporPage> {
         elevation: 0,
         centerTitle: true,
         actions: [
+          if (admin)
+            IconButton(
+              tooltip: 'Generate rapor massal per kelas',
+              onPressed: _generateMassal,
+              icon: const Icon(Icons.auto_awesome_outlined),
+            ),
           if (admin)
             IconButton(
               onPressed: () => setState(() => _tampilBuat = true),
@@ -594,6 +634,106 @@ class _Badge extends StatelessWidget {
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: warna),
+      ),
+    );
+  }
+}
+
+/// Form generate rapor massal per kelas.
+class _FormRaporMassal extends StatefulWidget {
+  const _FormRaporMassal({required this.kelas});
+  final List<RowData> kelas;
+
+  @override
+  State<_FormRaporMassal> createState() => _FormRaporMassalState();
+}
+
+class _FormRaporMassalState extends State<_FormRaporMassal> {
+  String? _kelasId;
+  String _semester = 'gasal';
+  final _tahun = TextEditingController(text: '2026/2027');
+  bool _publikasi = false;
+
+  @override
+  void dispose() {
+    _tahun.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 18, right: 18, top: 18,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 18),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Generate Rapor Massal',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text(
+              'Sistem menghitung rata-rata nilai tiap siswa per mapel dari '
+              'data Input Nilai semester terpilih, lalu membuat rapor per siswa.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: _kelasId,
+              decoration: const InputDecoration(labelText: 'Kelas'),
+              items: [
+                for (final k in widget.kelas)
+                  DropdownMenuItem(
+                      value: k['id']?.toString(),
+                      child: Text(k['nama']?.toString() ?? '-')),
+              ],
+              onChanged: (v) => setState(() => _kelasId = v),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: _semester,
+              decoration: const InputDecoration(labelText: 'Semester'),
+              items: const [
+                DropdownMenuItem(value: 'gasal', child: Text('Gasal')),
+                DropdownMenuItem(value: 'genap', child: Text('Genap')),
+              ],
+              onChanged: (v) => setState(() => _semester = v ?? 'gasal'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _tahun,
+              decoration: const InputDecoration(labelText: 'Tahun ajaran'),
+            ),
+            const SizedBox(height: 10),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Langsung publikasikan',
+                  style: TextStyle(fontSize: 13.5)),
+              subtitle: const Text(
+                  'Kalau tidak, rapor disimpan sebagai draf dulu.',
+                  style: TextStyle(fontSize: 12)),
+              value: _publikasi,
+              onChanged: (v) => setState(() => _publikasi = v ?? false),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: _kelasId == null
+                  ? null
+                  : () => Navigator.pop(
+                      context,
+                      (
+                        kelasId: _kelasId!,
+                        semester: _semester,
+                        tahun: _tahun.text.trim(),
+                        publikasi: _publikasi,
+                      )),
+              icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+              label: const Text('Generate Rapor'),
+            ),
+          ],
+        ),
       ),
     );
   }

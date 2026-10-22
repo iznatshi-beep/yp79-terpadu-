@@ -184,10 +184,97 @@ class _NilaiInputPageState extends State<NilaiInputPage> {
     return s['student_user_id']?.toString() ?? '-';
   }
 
+  /// Paste massal dari Excel/Sheets: tiap baris "NIS TAB nilai",
+  /// "NIS,nilai" atau "NIS spasi nilai". NIS tidak ketemu dilewati.
+  Future<void> _pasteMassal() async {
+    if (_siswa.isEmpty) return;
+    final teks = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        return AlertDialog(
+          title: const Text('Paste Nilai Massal'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Format per baris: NIS lalu nilai, pisah TAB / spasi / koma.\n'
+                  'Contoh:\n2026001 85\n2026002\t90,5',
+                  style: TextStyle(fontSize: 12.5),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  maxLines: 10,
+                  decoration: const InputDecoration(
+                    labelText: 'Tempel data nilai di sini',
+                    alignLabelWithHint: true,
+                    hintText: '2026001 85\n2026002 78.5',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, ctrl.text),
+              child: const Text('Isi Nilai'),
+            ),
+          ],
+        );
+      },
+    );
+    if (teks == null || teks.trim().isEmpty) return;
+    int terisi = 0;
+    for (final raw in teks.split('\n')) {
+      final baris = raw.trim();
+      if (baris.isEmpty) continue;
+      final bagian = baris
+          .split(RegExp(r'[\t, ]+'))
+          .where((b) => b.isNotEmpty)
+          .toList();
+      if (bagian.length < 2) continue;
+      final nisCari = bagian.first.trim();
+      final nilaiStr = bagian.last.trim();
+      final angka = double.tryParse(nilaiStr.replaceAll(',', '.'));
+      if (angka == null) continue;
+      // cocokkan ke siswa berdasarkan NIS.
+      final cocok = _siswa.where((s) {
+        final p = s['student_profiles'];
+        final nis = p is Map ? p['nis']?.toString() : null;
+        return nis != null && nis == nisCari;
+      }).toList();
+      if (cocok.isEmpty) continue;
+      final id = cocok.first['student_user_id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      _nilai[id]?.text = nilaiStr;
+      terisi++;
+    }
+    if (!mounted) return;
+    showToast(context,
+        'Terisi: $terisi baris. Periksa lalu tekan Simpan Nilai.',
+        color: terisi > 0 ? AppColors.success : AppColors.warning);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Input Nilai')),
+      appBar: AppBar(
+        title: const Text('Input Nilai'),
+        actions: [
+          if (_siswa.isNotEmpty)
+            IconButton(
+              tooltip: 'Paste nilai massal (dari Excel)',
+              icon: const Icon(Icons.paste_rounded),
+              onPressed: _pasteMassal,
+            ),
+        ],
+      ),
       body: _loading
           ? const Padding(
               padding: EdgeInsets.all(16),

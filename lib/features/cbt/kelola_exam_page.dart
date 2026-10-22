@@ -122,6 +122,31 @@ class _KelolaExamPageState extends State<KelolaExamPage> {
                 _bukaPeserta(e);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Duplikat ujian'),
+              subtitle: const Text(
+                  'Salin soal ke ujian baru (untuk semester/tahun depan)'),
+              onTap: () async {
+                Navigator.pop(context);
+                final ok = await showConfirmDialog(
+                  context,
+                  judul: 'Duplikat ujian?',
+                  pesan: 'Semua soal "$judul" disalin ke ujian baru '
+                      '(status draf).',
+                  tombolYa: 'Duplikat',
+                );
+                if (!ok) return;
+                final r = await Repos.duplikatExam(id);
+                if (!mounted) return;
+                showToast(context,
+                    r.error ?? 'Salinan ujian dibuat (draf).',
+                    color: r.error == null
+                        ? AppColors.success
+                        : AppColors.danger);
+                if (r.error == null) _muat();
+              },
+            ),
           ],
         ),
       ),
@@ -416,6 +441,32 @@ class _KelolaSoalPageState extends State<KelolaSoalPage> {
     if (ok == true && mounted) _muat();
   }
 
+  Future<void> _importMassal() async {
+    final hasil = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _FormImportSoal(examId: widget.examId),
+    );
+    if (hasil != null && hasil > 0 && mounted) {
+      showToast(context, '$hasil soal diimpor.',
+          color: AppColors.success);
+      _muat();
+    }
+  }
+
+  Future<void> _bankSoal() async {
+    final n = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _FormBankSoal(keExamId: widget.examId),
+    );
+    if (n != null && n > 0 && mounted) {
+      showToast(context, '$n soal disalin dari bank soal.',
+          color: AppColors.success);
+      _muat();
+    }
+  }
+
   Future<void> _hapusSoal(String qid) async {
     final ok = await showConfirmDialog(
       context,
@@ -446,9 +497,37 @@ class _KelolaSoalPageState extends State<KelolaSoalPage> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Tambah Soal'),
       ),
-      body: _isi(),
+      body: Column(
+        children: [
+          _importButton(),
+          Expanded(child: _isi()),
+        ],
+      ),
     );
   }
+
+  Widget _importButton() => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _importMassal,
+                icon: const Icon(Icons.paste_rounded, size: 18),
+                label: const Text('Import Massal'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _bankSoal,
+                icon: const Icon(Icons.library_books_outlined, size: 18),
+                label: const Text('Bank Soal'),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _isi() {
     if (_memuat) {
@@ -910,6 +989,295 @@ class _KoreksiEsaiPageState extends State<KoreksiEsaiPage> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Import soal massal: guru paste teks/CSV, app parse & simpan batch.
+///
+/// Format per baris (pisah | atau tab):
+///   pilihan: pertanyaan | opsiA | opsiB | opsiC? | opsiD? | opsiE? | KUNCI | skor?
+///   esai   : esai | pertanyaan | skor?
+/// Baris kosong di-skip. Baris yang gagal parse dilaporkan, yang valid tetap masuk.
+class _FormImportSoal extends StatefulWidget {
+  const _FormImportSoal({required this.examId});
+  final String examId;
+
+  @override
+  State<_FormImportSoal> createState() => _FormImportSoalState();
+}
+
+class _FormImportSoalState extends State<_FormImportSoal> {
+  final _ctrl = TextEditingController();
+  bool _sibuk = false;
+  int _jumlahParsed = 0;
+  List<Map<String, dynamic>> _parsed = const [];
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  /// Parser: satu baris = satu soal, kolom dipisah '|'.
+  /// Kolom kunci boleh 'A'..'E' atau 'a'..'e'. Skor opsional (default 1 PG / 10 esai).
+  static List<Map<String, dynamic>> parseSoal(String teks) {
+    final hasil = <Map<String, dynamic>>[];
+    for (final raw in teks.split('\n')) {
+      final baris = raw.trim();
+      if (baris.isEmpty) continue;
+      final lower = baris.toLowerCase();
+      if (baris.startsWith('//')) continue;
+      if (lower.startsWith('pertanyaan') || lower.startsWith('tipe')) {
+        continue; // header
+      }
+      if (lower.startsWith('esai') || lower.startsWith('essay')) {
+        final kolom = baris.split('|');
+        if (kolom.length < 2) continue;
+        final pertanyaan = kolom[1].trim();
+        if (pertanyaan.isEmpty) continue;
+        final skor = int.tryParse(kolom.length > 2 ? kolom[2] : '') ?? 10;
+        hasil.add({'tipe': 'esai', 'pertanyaan': pertanyaan, 'skor': skor});
+      } else if (baris.contains('|')) {
+        final kolom = baris.split('|');
+        if (kolom.length < 3) continue; // min: pertanyaan | A | B
+        final pertanyaan = kolom[0].trim();
+        if (pertanyaan.isEmpty) continue;
+        String? opsi(int i) => i < kolom.length && kolom[i].trim().isNotEmpty
+            ? kolom[i].trim()
+            : null;
+        String? kunci;
+        int skor = 1;
+        for (final k in kolom.sublist(1)) {
+          final kTrim = k.trim();
+          if (kTrim.length == 1 &&
+              ['A', 'B', 'C', 'D', 'E'].contains(kTrim.toUpperCase())) {
+            kunci = kTrim.toUpperCase();
+          }
+        }
+        if (kolom.length >= 8) {
+          final sk = int.tryParse(kolom.last.trim());
+          if (sk != null) skor = sk;
+        }
+        if (kunci == null) continue; // PG tanpa kunci → skip
+        hasil.add({
+          'tipe': 'pilihan',
+          'pertanyaan': pertanyaan,
+          'opsi_a': opsi(1),
+          'opsi_b': opsi(2),
+          'opsi_c': opsi(3),
+          'opsi_d': opsi(4),
+          'opsi_e': opsi(5),
+          'kunci': kunci,
+          'skor': skor,
+        });
+      }
+    }
+    return hasil;
+  }
+
+  void _parseTeks(String v) {
+    setState(() {
+      _parsed = parseSoal(v);
+      _jumlahParsed = _parsed.length;
+    });
+  }
+
+  Future<void> _simpan() async {
+    if (_parsed.isEmpty) {
+      showToast(context, 'Tidak ada soal yang terbaca. Cek format.',
+          color: AppColors.warning);
+      return;
+    }
+    final ok = await showConfirmDialog(
+      context,
+      judul: 'Import ${_parsed.length} soal?',
+      pesan: 'Soal akan ditambahkan ke ujian ini.',
+      tombolYa: 'Import',
+    );
+    if (!ok) return;
+    final err = await Repos.tambahSoalMassal(
+        examId: widget.examId, soalList: _parsed);
+    if (!mounted) return;
+    if (err != null) {
+      showToast(context, err, color: AppColors.danger);
+      return;
+    }
+    Navigator.pop(context, _parsed.length);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 18, right: 18, top: 18,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 18),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Import Soal Massal',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            const Text(
+              'Tempel soal dari Word/Excel/WhatsApp. Format per baris:\n'
+              '• PG: pertanyaan | A | B | C | D | E | KUNCI | skor\n'
+              '• Esai: esai | pertanyaan | skor\n'
+              'Contoh:\n2+2 = ? | 3 | 4 | 5 | 6 | | B | 5',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _ctrl,
+              maxLines: 12,
+              decoration: const InputDecoration(
+                labelText: 'Tempel soal di sini',
+                hintText: 'Ibu kota Indonesia? | Jakarta | Bandung | Surabaya | Medan | | A | 1',
+                alignLabelWithHint: true,
+              ),
+              onChanged: _parseTeks,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '$_jumlahParsed soal terdeteksi.',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: _parsed.isEmpty
+                    ? AppColors.textSecondary
+                    : AppColors.success,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _parsed.isEmpty || _sibuk ? null : _simpan,
+              icon: const Icon(Icons.upload_rounded, size: 18),
+              label: Text(_sibuk ? 'Mengimpor…' : 'Import Semua'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bank soal: salin soal dari ujian lain ke ujian ini.
+class _FormBankSoal extends StatefulWidget {
+  const _FormBankSoal({required this.keExamId});
+  final String keExamId;
+
+  @override
+  State<_FormBankSoal> createState() => _FormBankSoalState();
+}
+
+class _FormBankSoalState extends State<_FormBankSoal> {
+  List<RowData> _exams = const [];
+  bool _memuat = true;
+  String? _pilih;
+  bool _sibuk = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  Future<void> _muat() async {
+    final res = await Repos.semuaExamUntukBank();
+    if (!mounted) return;
+    setState(() {
+      _exams = res.data
+          .where((e) => (e['id']?.toString() ?? '') != widget.keExamId)
+          .toList();
+      _memuat = false;
+    });
+  }
+
+  Future<void> _salin() async {
+    if (_pilih == null) {
+      showToast(context, 'Pilih ujian sumber dulu.', color: AppColors.warning);
+      return;
+    }
+    final judulSumber = _exams
+        .firstWhere((e) => e['id']?.toString() == _pilih,
+            orElse: () => const {})['judul']
+        ?.toString() ??
+        'Ujian';
+    final ok = await showConfirmDialog(
+      context,
+      judul: 'Salin soal?',
+      pesan: 'Semua soal dari "$judulSumber" disalin ke ujian ini.',
+      tombolYa: 'Salin',
+    );
+    if (!ok) return;
+    setState(() => _sibuk = true);
+    final err = await Repos.salinSoalDariExam(
+      dariExamId: _pilih!,
+      keExamId: widget.keExamId,
+    );
+    if (!mounted) return;
+    if (err != null) {
+      showToast(context, err, color: AppColors.danger);
+      setState(() => _sibuk = false);
+      return;
+    }
+    Navigator.pop(context, 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 18, right: 18, top: 18,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 18),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Bank Soal — Salin dari Ujian Lain',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text(
+              'Pilih ujian sumber. SEMUA soal ujian itu disalin ke ujian ini '
+              '(tidak menimpa soal yang sudah ada).',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            if (_memuat)
+              const Padding(padding: EdgeInsets.all(18), child: SkeletonRow())
+            else if (_exams.isEmpty)
+              const Text('Belum ada ujian lain untuk disalin.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary))
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _pilih,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                    labelText: 'Ujian sumber (bank soal)'),
+                items: [
+                  for (final e in _exams)
+                    DropdownMenuItem(
+                      value: e['id']?.toString(),
+                      child: Text(
+                        '${e['judul'] ?? '-'} '
+                        '(${(e['status'] ?? '').toString()})',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _pilih = v),
+              ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: (_pilih == null || _sibuk) ? null : _salin,
+              icon: const Icon(Icons.copy_all_rounded, size: 18),
+              label: Text(_sibuk ? 'Menyalin…' : 'Salin Semua Soal'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -845,6 +845,223 @@ class Repos {
     }
   }
 
+  /// Generate rapor massal untuk satu kelas: ambil rata-rata nilai tiap siswa
+  /// per mapel dari grading_records semester terpilih, lalu buat rapor draf
+  /// per siswa. Siswa tanpa nilai → mapel nilainya 0 (guru tinggal edit).
+  static Future<({String? error, int jumlah})> buatRaportMassal({
+    required String classId,
+    required String semester,
+    required String tahunAjaran,
+    bool publikasikan = false,
+  }) async {
+    try {
+      final siswaRes = await classStudents(classId);
+      if (siswaRes.data.isEmpty) {
+        return (error: 'Kelas ini belum punya siswa.', jumlah: 0);
+      }
+      final mapelRes = await subjects();
+      if (mapelRes.data.isEmpty) {
+        return (error: 'Tidak ada mata pelajaran.', jumlah: 0);
+      }
+      int dibuat = 0;
+      for (final s in siswaRes.data) {
+        final studentId = s['student_user_id']?.toString() ?? '';
+        if (studentId.isEmpty) continue;
+        // Rata-rata nilai per mapel dari grading_records.
+        final g = await grades(studentId: studentId, semester: semester);
+        final perMapel = <String, List<double>>{};
+        for (final gr in g.data) {
+          final sid = gr['subject_id']?.toString();
+          final v = double.tryParse(gr['nilai']?.toString() ?? '');
+          if (sid == null || v == null) continue;
+          perMapel.putIfAbsent(sid, () => []).add(v);
+        }
+        final items = <RowData>[];
+        for (final m in mapelRes.data) {
+          final sid = m['id']?.toString();
+          if (sid == null) continue;
+          final daftar = perMapel[sid] ?? const <double>[];
+          final rata = daftar.isEmpty
+              ? 0.0
+              : daftar.reduce((a, b) => a + b) / daftar.length;
+          items.add({
+            'subject_id': sid,
+            'nilai_akhir': double.parse(rata.toStringAsFixed(2)),
+            'predikat': _predikatDariNilai(rata),
+          });
+        }
+        final err = await buatRaport(
+          studentId: studentId,
+          semester: semester,
+          tahunAjaran: tahunAjaran,
+          items: items,
+          publikasikan: publikasikan,
+        );
+        if (err == null) dibuat++;
+      }
+      return (error: null, jumlah: dibuat);
+    } catch (e) {
+      return (error: _pesan(e.toString()), jumlah: 0);
+    }
+  }
+
+  static String _predikatDariNilai(double n) {
+    if (n >= 90) return 'A';
+    if (n >= 80) return 'B';
+    if (n >= 70) return 'C';
+    if (n >= 60) return 'D';
+    return 'E';
+  }
+
+  static Future<({String? error, String? examId})> duplikatExam(
+      String examId) async {
+    try {
+      // 1. Ambil ujian sumber.
+      final src = await db.from('exams').select().eq('id', examId).single();
+      // 2. Buat ujian baru (judul + "Salinan -", status draft, tanggal digeser).
+      final ins = await db.from('exams').insert({
+        'dibuat_oleh': uid,
+        'subject_id': src['subject_id'],
+        'class_id': src['class_id'],
+        'judul': 'Salinan - ${src['judul']}',
+        'deskripsi': src['deskripsi'],
+        'mulai': DateTime.now().toIso8601String(),
+        'selesai': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+        'durasi_menit': src['durasi_menit'] ?? 60,
+        'jumlah_percobaan': src['jumlah_percobaan'] ?? 1,
+        'status': 'draft',
+      }).select('id').single();
+      final newId = ins['id']?.toString();
+      if (newId == null || newId.isEmpty) {
+        return (error: 'Gagal membuat salinan ujian.', examId: null);
+      }
+      // 3. Salin soal (jika ada).
+      final soal = await db
+          .from('exam_questions')
+          .select()
+          .eq('exam_id', examId)
+          .order('urutan');
+      if ((soal as List).isNotEmpty) {
+        final rows = <Map<String, dynamic>>[];
+        var i = 0;
+        for (final raw in soal) {
+          final q = Map<String, dynamic>.from(raw as Map);
+          rows.add({
+            'exam_id': newId,
+            'urutan': i + 1,
+            'tipe': q['tipe'],
+            'pertanyaan': q['pertanyaan'],
+            'opsi_a': q['opsi_a'],
+            'opsi_b': q['opsi_b'],
+            'opsi_c': q['opsi_c'],
+            'opsi_d': q['opsi_d'],
+            'opsi_e': q['opsi_e'],
+            'kunci': q['kunci'],
+            'skor': q['skor'] ?? 1,
+          });
+          i++;
+        }
+        await db.from('exam_questions').insert(rows);
+      }
+      return (error: null, examId: newId);
+    } catch (e) {
+      return (error: _pesan(e.toString()), examId: null);
+    }
+  }
+
+  /// Ambil daftar ujian lain milik siapa pun (untuk sumber salin soal / bank soal).
+  static Future<QueryResult<RowData>> semuaExamUntukBank() async {
+    try {
+      final rows = await _filter('exams', orderCol: 'created_at',
+          ascending: false, limit: 300);
+      return QueryResult<RowData>(data: [
+        for (final r in rows) Map<String, dynamic>.from(r as Map)
+      ]);
+    } catch (e) {
+      return QueryResult<RowData>(data: [], error: e.toString());
+    }
+  }
+
+  /// Salin semua soal dari ujian lain ke ujian ini (bank soal antar ujian).
+  static Future<String?> salinSoalDariExam({
+    required String dariExamId,
+    required String keExamId,
+  }) async {
+    try {
+      final soal = await db
+          .from('exam_questions')
+          .select()
+          .eq('exam_id', dariExamId)
+          .order('urutan');
+      if ((soal as List).isEmpty) return 'Ujian sumber tidak punya soal.';
+      final rows = <Map<String, dynamic>>[];
+      var i = 0;
+      for (final raw in soal) {
+        final q = Map<String, dynamic>.from(raw as Map);
+        rows.add({
+          'exam_id': keExamId,
+          'urutan': i + 1,
+          'tipe': q['tipe'],
+          'pertanyaan': q['pertanyaan'],
+          'opsi_a': q['opsi_a'],
+          'opsi_b': q['opsi_b'],
+          'opsi_c': q['opsi_c'],
+          'opsi_d': q['opsi_d'],
+          'opsi_e': q['opsi_e'],
+          'kunci': q['kunci'],
+          'skor': q['skor'] ?? 1,
+        });
+        i++;
+      }
+      await db.from('exam_questions').insert(rows);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
+  /// Tambah banyak soal sekaligus (bulk insert).
+  static Future<String?> tambahSoalMassal({
+    required String examId,
+    required List<Map<String, dynamic>> soalList,
+  }) async {
+    try {
+      final rows = <Map<String, dynamic>>[];
+      for (var i = 0; i < soalList.length; i++) {
+        final s = soalList[i];
+        final tipe = s['tipe']?.toString() ?? 'pilihan';
+        if (tipe == 'esai') {
+          rows.add({
+            'exam_id': examId,
+            'urutan': (DateTime.now().millisecondsSinceEpoch % 1000000) + i,
+            'tipe': 'esai',
+            'pertanyaan': s['pertanyaan'],
+            'kunci': null,
+            'skor': s['skor'] ?? 10,
+          });
+        } else {
+          rows.add({
+            'exam_id': examId,
+            'urutan': (DateTime.now().millisecondsSinceEpoch % 1000000) + i,
+            'tipe': 'pilihan',
+            'pertanyaan': s['pertanyaan'],
+            'opsi_a': s['opsi_a'],
+            'opsi_b': s['opsi_b'],
+            'opsi_c': s['opsi_c'],
+            'opsi_d': s['opsi_d'],
+            'opsi_e': s['opsi_e'],
+            'kunci': (s['kunci'] ?? 'A').toString().toUpperCase(),
+            'skor': s['skor'] ?? 1,
+          });
+        }
+      }
+      await db.from('exam_questions').insert(rows);
+      return null;
+    } catch (e) {
+      return _pesan(e);
+    }
+  }
+
   /// Hapus soal.
   static Future<String?> hapusSoal(String questionId) async {
     try {
