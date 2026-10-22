@@ -180,7 +180,7 @@ class _RaporPageState extends State<RaporPage> {
       return AppStates.loading(rows: 5);
     }
     if (_error != null) {
-      return AppStates.error(message: _error!, onRetry: _muat);
+      return AppStates.error(message: _error ?? 'Gagal memuat data.', onRetry: _muat);
     }
 
     // Ortu / siswa: tampilkan daftar rapor ANAK MEREKA (yang published).
@@ -203,7 +203,7 @@ class _RaporPageState extends State<RaporPage> {
           if (admin)
             IconButton(
               onPressed: () => setState(() => _tampilBuat = true),
-              icon: const Icon(Icons.add_a_card_outlined),
+              icon: const Icon(Icons.add_box_outlined),
             ),
           IconButton(
             onPressed: _muat,
@@ -218,8 +218,8 @@ class _RaporPageState extends State<RaporPage> {
               children: [
                 if (admin && daftar.isEmpty)
                   AppStates.empty(
-                    judul: 'Belum ada rapor',
-                    pesan:
+                    title: 'Belum ada rapor',
+                    message:
                         'Buat rapor dengan tombol + di kanan atas, atau mulai dari data nilai yang sudah diinput.',
                     action: ElevatedButton(
                       onPressed: () => setState(() => _tampilBuat = true),
@@ -249,9 +249,9 @@ class _RaporPageState extends State<RaporPage> {
         ? _Badge(
             teks: 'Dipublikasikan',
             bg: AppColors.successBg,
-            teks: AppColors.success,
+            warna: AppColors.success,
           )
-        : _Badge(teks: 'Draf', bg: AppColors.warningBg, teks: AppColors.warning);
+        : _Badge(teks: 'Draf', bg: AppColors.warningBg, warna: AppColors.warning);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -310,12 +310,7 @@ class _RaporPageState extends State<RaporPage> {
                   child: OutlinedButton.icon(
                     onPressed: () => _muatItems(id),
                     icon: const Icon(Icons.subject, size: 16),
-                    label: const Text(terpilih ? 'Tutup nilai' : 'Lihat nilai'),
-                    style: OutlinedButtonStyle(
-                      side: const BorderSide(color: AppColors.primary),
-                      foregroundColor: const MaterialStatePropertyAll(
-                          AppColors.primary),
-                    ),
+                    label: Text(terpilih ? 'Tutup nilai' : 'Lihat nilai'),
                   ),
                 ),
                 if (widget.profile.isAdmin) ...[
@@ -334,10 +329,6 @@ class _RaporPageState extends State<RaporPage> {
                       onPressed: () => _hapus(id),
                       icon: const Icon(Icons.delete_outline, size: 16),
                       label: const Text('Hapus'),
-                      style: TextButtonStyle(
-                        foregroundColor:
-                            const MaterialStatePropertyAll(AppColors.danger),
-                      ),
                     ),
                   ),
                 ],
@@ -544,8 +535,6 @@ class _RaporPageState extends State<RaporPage> {
                   title: const Text('Publikasikan langsung',
                       style: TextStyle(fontSize: 13.5)),
                   value: _publikasikan,
-                  controlAffinity:
-                      MaterialControlAffinity.leading,
                   onChanged: (v) =>
                       setState(() => _publikasikan = v ?? false),
                 ),
@@ -580,12 +569,15 @@ class _RaporPageState extends State<RaporPage> {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(
-      {required this.teks, required this.bg, required this.teksWarna});
+  const _Badge({
+    required this.teks,
+    required this.bg,
+    required this.warna,
+  });
 
   final String teks;
   final Color bg;
-  final Color teksWarna;
+  final Color warna;
 
   @override
   Widget build(BuildContext context) {
@@ -601,7 +593,7 @@ class _Badge extends StatelessWidget {
         style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
-            color: teksWarna),
+            color: warna),
       ),
     );
   }

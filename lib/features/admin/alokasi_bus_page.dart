@@ -67,7 +67,7 @@ class _AlokasiBusPageState extends State<AlokasiBusPage> {
     });
   }
 
-  Future<void> _alokasi() async {
+  Future<void> tambahAlokasi() async {
     if (_siswaPilih == null || _busPilih == null) {
       showToast(context, 'Pilih siswa & kendaraan.',
           color: AppColors.danger);
@@ -207,7 +207,7 @@ class _AlokasiBusPageState extends State<AlokasiBusPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _sibuk ? null : _alokasi,
+                        onPressed: _sibuk ? null : tambahAlokasi,
                         child: const Text('Simpan Alokasi',
                             style: TextStyle(fontWeight: FontWeight.w700)),
                       ),

@@ -240,8 +240,8 @@ class _MediaMabitPageState extends State<MediaMabitPage> {
           // Galeri
           if (_media.isEmpty)
             AppStates.empty(
-              judul: 'Belum ada media',
-              pesan: 'Dokumen / foto MABIT akan tampil di sini.',
+              title: 'Belum ada media',
+              message: 'Dokumen / foto MABIT akan tampil di sini.',
             )
           else
             ..._media.map((m) {
@@ -271,7 +271,7 @@ class _MediaMabitPageState extends State<MediaMabitPage> {
                     ),
                   ),
                   title: Text(
-                    desk?.isNotEmpty == true ? desk : url.split('/').last,
+                    desk != null && desk.isNotEmpty ? desk : url.split('/').last,
                     style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
