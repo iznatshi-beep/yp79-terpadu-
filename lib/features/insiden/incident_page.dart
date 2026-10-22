@@ -494,7 +494,6 @@ class _IncidentPageState extends State<IncidentPage> {
   }
 
   Widget _buildFormBuat() {
-    final siswaId = widget.profile.studentId;
     final bisaPilihSiswa =
         widget.profile.isParent || widget.profile.isAdmin;
     return Card(
@@ -509,7 +508,7 @@ class _IncidentPageState extends State<IncidentPage> {
                     fontSize: 15, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _kategoriPilih,
+              initialValue: _kategoriPilih,
               decoration:
                   const InputDecoration(labelText: 'Kategori *'),
               items: [
@@ -522,7 +521,7 @@ class _IncidentPageState extends State<IncidentPage> {
             const SizedBox(height: 8),
             if (bisaPilihSiswa)
               DropdownButtonFormField<String>(
-                value: _targetSiswaId,
+                initialValue: _targetSiswaId,
                 decoration:
                     const InputDecoration(labelText: 'Siswa terkait (opsional)'),
                 items: [
@@ -564,7 +563,7 @@ class _IncidentPageState extends State<IncidentPage> {
                       );
                       if (picked != null) {
                         setState(() => _waktuKejadian =
-                            '${picked.toIso8601String().split('.').first}');
+                            picked.toIso8601String().split('.').first);
                       }
                     },
                     child: InputDecorator(
