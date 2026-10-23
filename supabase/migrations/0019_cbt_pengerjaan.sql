@@ -94,6 +94,7 @@ begin
                  'id', q.id, 'tipe', q.tipe, 'pertanyaan', q.pertanyaan,
                  'opsi_a', q.opsi_a, 'opsi_b', q.opsi_b,
                  'opsi_c', q.opsi_c, 'opsi_d', q.opsi_d,
+                 'opsi_e', q.opsi_e,
                  'skor', q.skor, 'gambar_url', q.gambar_url)
                  order by q.urutan)
       from exam_questions q where q.exam_id = p_exam
