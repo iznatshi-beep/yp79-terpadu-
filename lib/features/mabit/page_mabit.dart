@@ -240,10 +240,10 @@ class _MutabaahTab extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 90),
                 itemCount: entries.length,
                 itemBuilder: (context, i) {
-                  final e = entries[i];
+                  final c = entries[i];
                   final checklist =
-                      (e['checklist'] as Map?)?.cast<String, dynamic>() ?? {};
-                  final diverifikasi = e['diverifikasi'] == true;
+                      (c['checklist'] as Map?)?.cast<String, dynamic>() ?? {};
+                  final sudahDiverifikasi = c['diverifikasi'] == true;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Container(
