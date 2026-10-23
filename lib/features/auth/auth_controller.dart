@@ -183,7 +183,7 @@ class _AuthGateState extends State<AuthGate> {
         },
       );
     }
-    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi));
+    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi ?? profil.role));
   }
 
   /// Salin profil dengan peran sesi (tanpa mengubah data login asli).
