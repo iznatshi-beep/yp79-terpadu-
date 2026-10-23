@@ -107,7 +107,14 @@ class _AuthGateState extends State<AuthGate> {
   Role? _peranSesi;
   String? _peranSesiUser;
 
+  /// Peran sesi yang dipilih pengguna, dikunci permanen per user id di
+  /// perangkat (shared_preferences). Diisi ASYNCHRONOUS saat build pertama
+  /// kali profil diketahui; sebelum itu, layarnya adalah SplashScreen
+  /// (jangan tampilkan layar pilih peran / dashboard) agar tidak berkedip.
   Future<void> _simpanPeran(String userId, Role r) async {
+    // Tandai pengguna secara lokal. Ini TIDAK mengubah peran di database
+    // (peran resmi tetap profiles.role + RLS server); hanya mengunci
+    // tampilan sesi perangkat ini.
     _peranSesi = r;
     _peranSesiUser = userId;
     try {
@@ -133,34 +140,50 @@ class _AuthGateState extends State<AuthGate> {
     if (profil == null) {
       return const LoginPage();
     }
-    // Muat pilihan peran tersimpan saat pertama kali profil diketahui.
-    if (_peranSesi == null &&
-        _peranSesiUser != profil.sub &&
-        profil.role.isStudentSide) {
+    // Muat pilihan peran tersimpan.
+    //
+    // ATURAN PERAN (sesuai spesifikasi client):
+    // - Siswa / Orang Tua: hanya dua pilihan tampilan (Siswa, Orang Tua),
+    //   dipilih sekali lalu DIKUNCI di perangkat (shared_preferences).
+    //   Selama penyimpanan tersisa, pengguna TIDAK akan melihat lagi
+    //   layar pilih peran — termasuk setelah aplikasi ditutup lama.
+    //   Peran resmi di database tidak berubah; seluruh data tetap
+    //   dilindungi RLS server (memilih tampilan bukan hak akses).
+    // - Guru / Guru Pembimbing / Admin: tidak ada layar pilih peran;
+    //   langsung masuk dashboard peran resminya dari database.
+    if (profil.role.isStaff) {
+      _peranSesi = null;
+      return BerandaPage(profile: _profilDenganPeran(profil, profil.role));
+    }
+    if (_peranSesiUser != profil.sub) {
+      // User berganti / belum dimuat: baca pilihan tersimpan dulu.
+      // Tampilkan SplashScreen sampai selesai (tidak berkedip).
       _peranSesiUser = profil.sub;
-      SharedPreferences.getInstance().then((sp) {
-        final tersimpan = sp.getString('peran_sesi_${profil.sub}');
+      _peranSesi = null;
+      // Baca async; build berikutnya memakai hasil.
+      SharedPreferences.getInstance().then((sp) async {
+        final tersimpan =
+            await sp.getString('peran_sesi_${profil.sub}');
         if (!mounted) return;
         if (tersimpan == Role.siswa.name || tersimpan == Role.orangTua.name) {
-          setState(() => _peranSesi = Role.fromString(tersimpan));
+          _peranSesi = Role.fromString(tersimpan);
+          setState(() {});
         }
       });
+      return const _SplashScreen();
     }
-    // Alur client: setelah login, pilih dulu peran sesi ini (hanya
-    // Siswa/Orang Tua). Akun staff (guru/pembimbing/admin) dibuat oleh admin
-    // dan langsung masuk dashboard peran resminya tanpa layar pilih peran.
-    if (_peranSesi == null && !profil.role.isStaff) {
+    if (_peranSesi == null) {
+      // Pilihan pertama kali untuk pengguna ini: tampilkan layar pilih peran.
       return PilihPeranPage(
         profile: profil,
         onPilih: (r) {
           final uid = profil.sub;
           if (uid == null) return;
-          setState(() => _simpanPeran(uid, r));
+          _simpanPeran(uid, r);
         },
       );
     }
-    // Staff: peran sesi = peran resmi. Siswa/Orang Tua: peran yang dipilih.
-    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi ?? profil.role));
+    return BerandaPage(profile: _profilDenganPeran(profil, _peranSesi));
   }
 
   /// Salin profil dengan peran sesi (tanpa mengubah data login asli).
