@@ -161,9 +161,9 @@ class _AuthGateState extends State<AuthGate> {
       _peranSesiUser = profil.sub;
       _peranSesi = null;
       // Baca async; build berikutnya memakai hasil.
-      SharedPreferences.getInstance().then((sp) async {
-        final tersimpan =
-            await sp.getString('peran_sesi_${profil.sub}');
+      SharedPreferences.getInstance().then((sp) {
+        return sp.getString('peran_sesi_${profil.sub}');
+      }).then((tersimpan) {
         if (!mounted) return;
         if (tersimpan == Role.siswa.name || tersimpan == Role.orangTua.name) {
           _peranSesi = Role.fromString(tersimpan);

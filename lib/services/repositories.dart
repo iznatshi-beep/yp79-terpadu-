@@ -60,7 +60,7 @@ class Repos {
 
   static Future<QueryResult<RowData>> schoolSettings() async {
     try {
-      final rows = await db.from('school_settings').select();
+      final rows = await db.from('school_settings').select().limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows)
           Map<String, dynamic>.from(
@@ -79,7 +79,7 @@ class Repos {
       // Catatan: tabel `classes` TIDAK punya kolom subject_id, jadi embedded
       // select `subjects(...)` selalu ditolak PostgREST (400). Relasi kelas↔mapel
       // yang benar ada di `schedules` / `teacher_assignments`.
-      final rows = await db.from('classes').select();
+      final rows = await db.from('classes').select().limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -90,7 +90,7 @@ class Repos {
 
   static Future<QueryResult<RowData>> subjects() async {
     try {
-      final rows = await db.from('subjects').select();
+      final rows = await db.from('subjects').select().limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -164,7 +164,8 @@ class Repos {
           .from('student_profiles')
           .select('user_id, nis, nama_lengkap')
           .inFilter('user_id', ids)
-          .order('nama_lengkap');
+          .order('nama_lengkap')
+          .limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -248,14 +249,14 @@ class Repos {
     final s =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     try {
-      final q = db.from('attendance_records').select().eq('tanggal', s);
+      var q = db.from('attendance_records').select().eq('tanggal', s);
       if (classId != null) {
         final studentIds = await _studentIdsOfClass(classId);
         if (studentIds.isNotEmpty) {
-          q.inFilter('student_user_id', studentIds);
+          q = q.inFilter('student_user_id', studentIds);
         }
       }
-      final rows = await q;
+      final rows = await q.limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -572,7 +573,7 @@ class Repos {
 
   /// Soal ujian TANPA kunci jawaban (memakai RPC `exam_questions_public`).
   ///
-  /// Versi lama memakai `.from('exam_questions').select()` yang mengambil
+  /// Versi lama memakai `.from('exam_questions').select().limit(5000)` yang mengambil
   /// SELURUH kolom termasuk `kunci`. Penyembunyian di UI bukan keamanan:
   /// payload sudah terkirim ke perangkat siswa. Sekarang kunci tidak pernah
   /// meninggalkan database pada jalur ini.
@@ -1328,7 +1329,7 @@ class Repos {
   static Future<QueryResult<RowData>> financeCategories() async {
     try {
       final rows =
-          await db.from('finance_categories').select().order('kode');
+          await db.from('finance_categories').select().limit(5000).order('kode');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -1376,8 +1377,7 @@ class Repos {
     try {
       final rows = await db
           .from('mabit_participants')
-          .select()
-          .eq('event_id', eventId)
+          .select().eq('event_id', eventId).limit(5000)
           .order('id');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -1409,8 +1409,7 @@ class Repos {
     try {
       final rows = await db
           .from('mabit_rundown_items')
-          .select()
-          .eq('event_id', eventId)
+          .select().eq('event_id', eventId).limit(5000)
           .order('urutan');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -1551,8 +1550,7 @@ class Repos {
       // bisa menampilkan kelas tiap siswa.
       final rows = await db
           .from('profiles')
-          .select('id, nama, email, student_profiles(kelas_id)')
-          .eq('role', 'siswa')
+          .select('id, nama, email, student_profiles(kelas_id)').eq('role', 'siswa').limit(5000)
           .order('nama');
       return QueryResult<RowData>(
         data: [
@@ -1580,7 +1578,7 @@ class Repos {
     try {
       final rows = await db
           .from('parent_student')
-          .select('parent_user_id, student_user_id, hubungan, diverifikasi');
+          .select('parent_user_id, student_user_id, hubungan, diverifikasi').limit(5000);
       return QueryResult<RowData>(
         data: [for (final r in rows) Map<String, dynamic>.from(r as Map)],
         total: rows.length,
@@ -2009,7 +2007,8 @@ class Repos {
       final rows = await db
           .from('profiles')
           .select('id, nama')
-          .inFilter('id', ids);
+          .inFilter('id', ids)
+          .limit(5000);
       return {
         for (final r in rows)
           if (r['id'] != null) r['id'].toString(): r['nama']?.toString() ?? '-'
@@ -2043,7 +2042,8 @@ class Repos {
       final rows = await db
           .from('profiles')
           .select('id, nama, role')
-          .inFilter('id', ids);
+          .inFilter('id', ids)
+          .limit(5000);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -2109,8 +2109,7 @@ class Repos {
     try {
       final rows = await db
           .from('mabit_media')
-          .select()
-          .eq('event_id', eventId)
+          .select().eq('event_id', eventId).limit(5000)
           .order('created_at', ascending: false);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
@@ -2174,7 +2173,7 @@ class Repos {
           .from('vehicle_assignments')
           .select(
               '*, vehicles(id, plat_nomor, jenis, sopir_nama), student_profiles(*)')
-          .order('created_at', ascending: false);
+          .limit(5000).order('created_at', ascending: false);
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
       ]);
@@ -2240,8 +2239,7 @@ class Repos {
     try {
       final rows = await db
           .from('report_card_items')
-          .select('*, subjects(id, nama)')
-          .eq('report_card_id', raportId)
+          .select('*, subjects(id, nama)').eq('report_card_id', raportId).limit(5000)
           .order('subject_id');
       return QueryResult<RowData>(data: [
         for (final r in rows) Map<String, dynamic>.from(r as Map)
