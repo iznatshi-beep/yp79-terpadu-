@@ -260,17 +260,17 @@ class _MutabaahTab extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                    e['tanggal']?.toString() ?? '-',
+                                    c['tanggal']?.toString() ?? '-',
                                     style: const TextStyle(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.ink)),
                               ),
                               StatusBadge(
-                                  label: diverifikasi
+                                  label: sudahDiverifikasi
                                       ? 'Terverifikasi'
                                       : 'Belum',
-                                  state: diverifikasi
+                                  state: sudahDiverifikasi
                                       ? BadgeState.success
                                       : BadgeState.neutral),
                             ],
