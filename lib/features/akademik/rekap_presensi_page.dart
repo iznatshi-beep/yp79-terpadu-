@@ -88,6 +88,13 @@ class _RekapPresensiPageState extends State<RekapPresensiPage> {
     });
     final kelas = await Repos.classes();
     if (!mounted) return;
+    if (kelas.error != null) {
+      setState(() {
+        _error = 'Gagal memuat daftar kelas: ${kelas.error}';
+        _memuat = false;
+      });
+      return;
+    }
     setState(() {
       _kelas = kelas.data;
       if (_kelasId == null && _kelas.isNotEmpty) {
@@ -112,8 +119,17 @@ class _RekapPresensiPageState extends State<RekapPresensiPage> {
     final hasil = await Repos.attendance(
       classId: _kelasId,
       mulai: _mulaiPeriode,
-      sampai: _akhirPeriode.add(const Duration(days: 1)),
+      sampai: _akhirPeriode,
     );
+    if (hasil.error != null) {
+      if (mounted) {
+        setState(() {
+          _error = 'Gagal memuat presensi: ${hasil.error}';
+          _memuat = false;
+        });
+      }
+      return;
+    }
     if (!mounted) return;
 
     // Kelompokkan record per siswa
@@ -145,10 +161,21 @@ class _RekapPresensiPageState extends State<RekapPresensiPage> {
       ));
     }
 
-    setState(() {
-      _rekap = rekap;
-      _memuat = false;
-    });
+    if (siswa.error != null || hasil.error != null) {
+      if (mounted) {
+        setState(() {
+          _error = hasil.error ?? siswa.error;
+          _memuat = false;
+        });
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _rekap = rekap;
+        _memuat = false;
+      });
+    }
   }
 
   @override

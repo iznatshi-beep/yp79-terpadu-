@@ -223,7 +223,7 @@ class Repos {
           .from('attendance_records')
           .select('*, attendance_sessions!left(class_id)')
           .order('tanggal', ascending: false)
-          .limit(500);
+          .limit(5000);
       if (studentId != null) q = q.eq('student_user_id', studentId);
       if (classId != null) {
         q = q.eq('attendance_sessions.class_id', classId);
